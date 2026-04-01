@@ -20,40 +20,30 @@
         .chat-history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
         .chat-history-list::-webkit-scrollbar { width: 5px; }
         .chat-history-list::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
-        
-        /* 🌟 NAYA: HISTORY ITEM & DELETE BUTTON CSS 🌟 */
         .history-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.95rem; color: var(--text-primary); position: relative;}
         .history-item:hover { background-color: var(--surface-color); }
         .history-item .material-symbols-outlined { font-size: 1.1rem; color: var(--text-secondary); }
-        .delete-icon {
-            position: absolute; right: 10px; color: #ff5546 !important; 
-            font-size: 1.1rem !important; opacity: 0; transition: 0.2s;
-        }
+        .delete-icon { position: absolute; right: 10px; color: #ff5546 !important; font-size: 1.1rem !important; opacity: 0; transition: 0.2s; }
         .history-item:hover .delete-icon { opacity: 1; }
         .delete-icon:hover { color: #ff2222 !important; transform: scale(1.1); }
 
         /* MAIN CHAT AREA */
         .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative;}
-        
         .navbar { padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; font-size: 1.4rem; color: var(--text-secondary); }
         .navbar-brand { display: flex; align-items: center; cursor: pointer;}
         .navbar-brand span { margin-right: 10px; color: var(--accent); }
         
-        /* CPU, RAM & VOICE STATS */
         .sys-stats { font-size: 0.9rem; display: flex; align-items: center; gap: 20px; background: var(--surface-color); padding: 8px 18px; border-radius: 20px;}
         .sys-stats span { color: var(--accent); font-weight: 600;}
-        
         .voice-badge { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); border-right: 1px solid #444; padding-right: 15px; margin-right: -5px; }
         .voice-badge .material-symbols-outlined { font-size: 1.1rem; color: var(--text-secondary); font-weight: normal; }
         .voice-badge span { color: var(--text-secondary); font-weight: 400; font-size: 0.85rem;}
 
         .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
-        
         .welcome-screen { max-width: 800px; width: 100%; margin-top: 5vh; animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .greeting { font-size: 3.5rem; font-weight: 500; margin-bottom: 40px; background: -webkit-linear-gradient(45deg, #4b90ff, #ff5546); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 40px; }
         .card { background-color: var(--surface-color); padding: 20px; border-radius: 15px; cursor: pointer; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
         .card:hover { background-color: #333537; }
@@ -64,14 +54,7 @@
         .chat-row { display: flex; gap: 15px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
         .avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-color); color: var(--accent); flex-shrink: 0; }
-        .msg-bubble { 
-            max-width: 85%; 
-            width: fit-content;
-            line-height: 1.6; 
-            font-size: 1.05rem; 
-            word-wrap: break-word; 
-            white-space: pre-wrap; 
-        }
+        .msg-bubble { max-width: 85%; width: fit-content; line-height: 1.6; font-size: 1.05rem; word-wrap: break-word; white-space: pre-wrap; }
         .user-bubble { background-color: var(--surface-color); padding: 12px 20px; border-radius: 20px 5px 20px 20px; }
 
         /* INPUT AREA */
@@ -84,30 +67,10 @@
         
         /* VOICE CONTROLS DROPDOWN */
         .voice-dropdown-container { position: relative; display: inline-block; }
-        .voice-dropdown-menu {
-            display: none;
-            position: absolute;
-            bottom: 110%;
-            right: -10px;
-            background-color: var(--surface-color);
-            min-width: 180px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
-            z-index: 1000;
-            border-radius: 12px;
-            border: 1px solid #333;
-            flex-direction: column;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
+        .voice-dropdown-menu { display: none; position: absolute; bottom: 110%; right: -10px; background-color: var(--surface-color); min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); z-index: 1000; border-radius: 12px; border: 1px solid #333; flex-direction: column; overflow: hidden; margin-bottom: 10px; }
         .voice-dropdown-menu.show { display: flex; animation: popup 0.2s ease-out; }
         @keyframes popup { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .dropdown-item {
-            background: transparent; color: var(--text-primary); padding: 12px 16px;
-            display: flex; align-items: center; gap: 12px; border: none;
-            width: 100%; text-align: left; cursor: pointer; font-family: 'Outfit';
-            font-size: 0.95rem; transition: 0.2s; border-bottom: 1px solid #2a2a2a;
-        }
+        .dropdown-item { background: transparent; color: var(--text-primary); padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: none; width: 100%; text-align: left; cursor: pointer; font-family: 'Outfit'; font-size: 0.95rem; transition: 0.2s; border-bottom: 1px solid #2a2a2a; }
         .dropdown-item:last-child { border-bottom: none; }
         .dropdown-item:hover { background-color: #333537; }
 
@@ -118,7 +81,7 @@
         @media (max-width: 768px) {
             .sidebar { position: absolute; height: 100%; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
             .voice-badge { display: none; }
-            .delete-icon { opacity: 1; } /* Mobile par hamesha dikhega */
+            .delete-icon { opacity: 1; }
         }
     </style>
 </head>
@@ -151,7 +114,7 @@
 
         <div class="main-container" id="main-scroll">
             <div class="welcome-screen" id="welcome-screen">
-                <div class="greeting">Hello, Nilabhra</div>
+                <div class="greeting" id="greetingText">Hello, User</div>
                 <h2 style="color: var(--text-secondary); font-weight: 400; margin-bottom: 30px;">How can I help you today?</h2>
                 
                 <div class="card-grid">
@@ -215,6 +178,15 @@
     </div>
 
 <script>
+    // 🌟 MULTI-USER SETUP: ASK NAME ON FIRST VISIT 🌟
+    let myName = localStorage.getItem('jarvis_username');
+    if (!myName) {
+        myName = prompt("Welcome to J.A.R.V.I.S.\nWhat is your name? (Your data will be kept separate)");
+        if (!myName || myName.trim() === "") myName = "Guest";
+        localStorage.setItem('jarvis_username', myName.trim());
+    }
+    document.getElementById('greetingText').innerText = "Hello, " + myName;
+
     // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
     let allSessions = JSON.parse(localStorage.getItem('jarvisSessions')) || {};
@@ -239,19 +211,12 @@
         mainScroll.scrollTop = mainScroll.scrollHeight;
     }
 
-    // 🌟 NAYA: DELETE SESSION LOGIC 🌟
     function deleteSession(id, event) {
-        event.stopPropagation(); // Click loadSession ko trigger hone se rokega
-        
+        event.stopPropagation();
         delete allSessions[id];
         localStorage.setItem('jarvisSessions', JSON.stringify(allSessions));
-        
-        // Agar current wali chat delete ki hai, toh naya chat khol do
-        if(currentSessionId === id) {
-            startNewChat();
-        } else {
-            updateSidebarUI(); // Warna bas list refresh kar do
-        }
+        if(currentSessionId === id) startNewChat();
+        else updateSidebarUI();
     }
 
     function updateSidebarUI() {
@@ -304,30 +269,21 @@
     function loadVoices() {
         let availableVoices = window.speechSynthesis.getVoices();
         jarvisVoice = availableVoices.find(v => v.name === 'Google हिन्दी');
-        if (!jarvisVoice) {
-            jarvisVoice = availableVoices.find(v => v.name.includes('Google') && (v.name.includes('हिन्दी') || v.name.includes('Hindi')));
-        }
+        if (!jarvisVoice) jarvisVoice = availableVoices.find(v => v.name.includes('Google') && (v.name.includes('हिन्दी') || v.name.includes('Hindi')));
     }
     window.speechSynthesis.onvoiceschanged = loadVoices;
     loadVoices();
 
     function stopAudio() { 
         window.speechSynthesis.cancel(); 
-        document.getElementById("voiceMenu").classList.remove("show"); // Close menu on click
+        document.getElementById("voiceMenu").classList.remove("show");
     }
 
-    // 🌟 DROPDOWN MENU LOGIC 🌟
-    function toggleVoiceMenu() {
-        document.getElementById("voiceMenu").classList.toggle("show");
-    }
-    
-    // Menu ke bahar click karne par band karna
+    function toggleVoiceMenu() { document.getElementById("voiceMenu").classList.toggle("show"); }
     window.onclick = function(event) {
         if (!event.target.closest('.voice-dropdown-container')) {
             let menu = document.getElementById("voiceMenu");
-            if (menu.classList.contains('show')) {
-                menu.classList.remove('show');
-            }
+            if (menu.classList.contains('show')) menu.classList.remove('show');
         }
     }
 
@@ -339,16 +295,13 @@
         wakeWordEnabled = !wakeWordEnabled;
         const wakeIcon = document.getElementById('wakeIcon');
         const masterIcon = document.getElementById('masterVoiceIcon');
-        
         if(wakeWordEnabled) {
-            wakeIcon.classList.add("wake-active");
-            masterIcon.classList.add("wake-active");
+            wakeIcon.classList.add("wake-active"); masterIcon.classList.add("wake-active");
             document.getElementById('wakeText').innerText = "Wake Word: ON";
             document.getElementById('userInput').placeholder = "Wake Word ON. Say 'Jarvis'...";
             try { wakeRecognition.start(); } catch(e){}
         } else {
-            wakeIcon.classList.remove("wake-active");
-            masterIcon.classList.remove("wake-active");
+            wakeIcon.classList.remove("wake-active"); masterIcon.classList.remove("wake-active");
             document.getElementById('wakeText').innerText = "Wake Word: OFF";
             document.getElementById('userInput').placeholder = "Ask J.A.R.V.I.S. anything...";
             wakeRecognition.stop();
@@ -365,7 +318,6 @@
             window.speechSynthesis.speak(speech);
         }
     };
-
     wakeRecognition.onend = () => { if (wakeWordEnabled && !isMicOn) { try { wakeRecognition.start(); } catch(e){} } };
 
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -376,23 +328,16 @@
         isMicOn = !isMicOn;
         const micIcon = document.getElementById('micIcon');
         const masterIcon = document.getElementById('masterVoiceIcon');
-        
         if(isMicOn) { 
             if(wakeWordEnabled) wakeRecognition.stop(); 
             micIcon.classList.add("mic-active"); 
-            
-            masterIcon.classList.remove("wake-active");
-            masterIcon.classList.add("mic-active");
-            
+            masterIcon.classList.remove("wake-active"); masterIcon.classList.add("mic-active");
             document.getElementById('micText').innerText = "Microphone: ON";
             document.getElementById('userInput').placeholder = "Listening to your command...";
             recognition.start(); 
         } else { 
-            micIcon.classList.remove("mic-active"); 
-            masterIcon.classList.remove("mic-active");
-            
+            micIcon.classList.remove("mic-active"); masterIcon.classList.remove("mic-active");
             if(wakeWordEnabled) masterIcon.classList.add("wake-active");
-            
             document.getElementById('micText').innerText = "Microphone: OFF";
             document.getElementById('userInput').placeholder = wakeWordEnabled ? "Wake Word ON. Say 'Jarvis'..." : "Ask J.A.R.V.I.S. anything...";
             recognition.stop(); 
@@ -420,9 +365,7 @@
                 const mainScroll = document.getElementById('main-scroll');
                 mainScroll.scrollTop = mainScroll.scrollHeight;
                 setTimeout(type, 15);
-            } else {
-                if(callback) callback();
-            }
+            } else { if(callback) callback(); }
         }
         type();
     }
@@ -431,11 +374,8 @@
         const fileInput = document.getElementById('fileInput');
         const indicator = document.getElementById('fileIndicator');
         if (fileInput.files.length > 0) {
-            indicator.style.display = 'block';
-            indicator.querySelector('span').innerText = fileInput.files[0].name;
-        } else {
-            indicator.style.display = 'none';
-        }
+            indicator.style.display = 'block'; indicator.querySelector('span').innerText = fileInput.files[0].name;
+        } else { indicator.style.display = 'none'; }
     }
 
     async function sendMessage() {
@@ -447,7 +387,7 @@
         if (!text && !file) return;
 
         window.speechSynthesis.cancel();
-        document.getElementById("voiceMenu").classList.remove("show"); // Close menu on send
+        document.getElementById("voiceMenu").classList.remove("show");
         document.getElementById('welcome-screen').style.display = 'none';
 
         const chatbox = document.getElementById('chatbox');
@@ -479,6 +419,8 @@
         try {
             const formData = new FormData();
             formData.append('message', text);
+            // 🌟 NAYA: USERNAME BHEJ RAHE HAIN BACKEND KO 🌟
+            formData.append('username', myName);
             if (file) formData.append('file', file);
 
             const res = await fetch('/chat', { method: 'POST', body: formData });
@@ -493,7 +435,6 @@
 
             const cleanText = data.reply.replace(/[*#_`]/g, ''); 
             const speech = new SpeechSynthesisUtterance(cleanText);
-            
             if (jarvisVoice) speech.voice = jarvisVoice;
             
             speech.onend = function() {
