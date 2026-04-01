@@ -8,7 +8,8 @@ import base64
 
 app = Flask(__name__)
 
-# 🌟 API KEY RENDER KE ENVIRONMENT SE AAYEGI 🌟
+# 🌟 RENDER KE LIYE API KEY SETUP 🌟
+# (Agar PC pe test karna ho toh ise change karke apni asli key daal lena)
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 UPLOAD_FOLDER = 'uploads'
@@ -89,7 +90,7 @@ def chat():
                 else:
                     return jsonify({'reply': "Memory core error, Sir."})
 
-        # 2. CLEAR MEMORY COMMAND (Clears only this user's memory)
+        # 2. CLEAR MEMORY COMMAND
         if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
             open(f"brain_{username}.txt", 'w', encoding='utf-8').close()
             user_sessions[username] = []
