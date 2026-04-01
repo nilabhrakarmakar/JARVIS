@@ -7,14 +7,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
-        :root { --bg-color: #131314; --surface-color: #1e1f20; --text-primary: #e3e3e3; --text-secondary: #c4c7c5; --accent: #a8c7fa; --sidebar-bg: #171717;}
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background-color: var(--bg-color); color: var(--text-primary); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; overflow: hidden; }
+        :root { --bg-color: #131314; --surface-color: #1e1f20; --text-primary: #e3e3e3; --text-secondary: #c4c7c5; --accent: #a8c7fa; --sidebar-bg: #171717; --font-main: 'Outfit', sans-serif;}
         
-        /* SIDEBAR CSS */
+        /* 🌟 EASTER EGG: SUKUNA THEME 🌟 */
+        body.theme-sukuna {
+            --bg-color: #0a0000; --surface-color: #220000; --text-primary: #ffb3b3; 
+            --text-secondary: #ff4d4d; --accent: #ff0000; --sidebar-bg: #110000;
+        }
+        
+        /* 🌟 EASTER EGG: 90s RETRO THEME 🌟 */
+        body.theme-retro {
+            --bg-color: #1a0033; --surface-color: #2b005e; --text-primary: #00ffff; 
+            --text-secondary: #ff00ff; --accent: #ffcc00; --sidebar-bg: #120024;
+            --font-main: 'Courier New', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-primary); font-family: var(--font-main); height: 100vh; display: flex; overflow: hidden; transition: background-color 0.8s, color 0.8s; }
+        
         .sidebar { width: 280px; background-color: var(--sidebar-bg); display: flex; flex-direction: column; padding: 15px; border-right: 1px solid #333; transition: 0.3s; z-index: 100;}
         .sidebar.hidden { transform: translateX(-100%); margin-right: -280px; }
-        .new-chat-btn { display: flex; align-items: center; gap: 10px; background-color: var(--surface-color); color: var(--text-primary); padding: 12px 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 1rem; border: none; width: 100%; font-family: 'Outfit'; margin-bottom: 20px;}
+        .new-chat-btn { display: flex; align-items: center; gap: 10px; background-color: var(--surface-color); color: var(--text-primary); padding: 12px 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 1rem; border: none; width: 100%; font-family: var(--font-main); margin-bottom: 20px;}
         .new-chat-btn:hover { background-color: #333537; }
         .history-title { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; padding-left: 5px; font-weight: 500;}
         .chat-history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
@@ -23,13 +36,10 @@
         .history-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.95rem; color: var(--text-primary); position: relative;}
         .history-item:hover { background-color: var(--surface-color); }
         .history-item .material-symbols-outlined { font-size: 1.1rem; color: var(--text-secondary); }
-        
-        /* DELETE CHAT ICON */
         .delete-icon { position: absolute; right: 10px; color: #ff5546 !important; font-size: 1.1rem !important; opacity: 0; transition: 0.2s; }
         .history-item:hover .delete-icon { opacity: 1; }
         .delete-icon:hover { color: #ff2222 !important; transform: scale(1.1); }
 
-        /* MAIN CHAT AREA */
         .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative;}
         .navbar { padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; font-size: 1.4rem; color: var(--text-secondary); }
         .navbar-brand { display: flex; align-items: center; cursor: pointer;}
@@ -47,11 +57,10 @@
         
         .greeting { font-size: 3.5rem; font-weight: 500; margin-bottom: 40px; background: -webkit-linear-gradient(45deg, #4b90ff, #ff5546); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 40px; }
-        .card { background-color: var(--surface-color); padding: 20px; border-radius: 15px; cursor: pointer; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
-        .card:hover { background-color: #333537; }
+        .card { background-color: var(--surface-color); padding: 20px; border-radius: 15px; cursor: pointer; transition: 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid transparent;}
+        .card:hover { background-color: #333537; border-color: var(--accent);}
         .card span.icon { align-self: flex-end; background: #131314; padding: 8px; border-radius: 50%; font-size: 1.2rem; }
 
-        /* CHAT BUBBLES (NO NOODLES FIX) */
         #chatbox { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 25px; padding-bottom: 20px; }
         .chat-row { display: flex; gap: 15px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
@@ -59,22 +68,21 @@
         .msg-bubble { max-width: 85%; width: fit-content; line-height: 1.6; font-size: 1.05rem; word-wrap: break-word; white-space: pre-wrap; }
         .user-bubble { background-color: var(--surface-color); padding: 12px 20px; border-radius: 20px 5px 20px 20px; }
 
-        /* INPUT AREA */
         .input-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px 20px 20px; }
         .file-indicator { font-size: 0.85rem; color: var(--accent); margin-bottom: 5px; display: none; padding-left: 15px;}
-        .search-box { display: flex; align-items: center; background-color: var(--surface-color); border-radius: 30px; padding: 5px 10px; }
-        .search-box input[type="text"] { flex: 1; background: transparent; border: none; color: #fff; padding: 15px; font-size: 1.1rem; font-family: 'Outfit'; outline: none; }
+        .search-box { display: flex; align-items: center; background-color: var(--surface-color); border-radius: 30px; padding: 5px 10px; transition: 0.3s; border: 1px solid transparent;}
+        .search-box:focus-within { border-color: var(--accent); }
+        .search-box input[type="text"] { flex: 1; background: transparent; border: none; color: #fff; padding: 15px; font-size: 1.1rem; font-family: var(--font-main); outline: none; }
         .icon-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .icon-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
         
-        /* VOICE CONTROLS DROPDOWN */
         .voice-dropdown-container { position: relative; display: inline-block; }
         .voice-dropdown-menu { display: none; position: absolute; bottom: 110%; right: -10px; background-color: var(--surface-color); min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); z-index: 1000; border-radius: 12px; border: 1px solid #333; flex-direction: column; overflow: hidden; margin-bottom: 10px; }
         .voice-dropdown-menu.show { display: flex; animation: popup 0.2s ease-out; }
         @keyframes popup { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-item { background: transparent; color: var(--text-primary); padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: none; width: 100%; text-align: left; cursor: pointer; font-family: 'Outfit'; font-size: 0.95rem; transition: 0.2s; border-bottom: 1px solid #2a2a2a; }
+        .dropdown-item { background: transparent; color: var(--text-primary); padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: none; width: 100%; text-align: left; cursor: pointer; font-family: var(--font-main); font-size: 0.95rem; transition: 0.2s; border-bottom: 1px solid #2a2a2a; }
         .dropdown-item:last-child { border-bottom: none; }
-        .dropdown-item:hover { background-color: #333537; }
+        .dropdown-item:hover { background-color: #333537; color: var(--accent);}
 
         .mic-active { color: #ff5546 !important; animation: pulse 1s infinite; }
         .wake-active { color: #4b90ff !important; animation: pulse 1.5s infinite; }
@@ -180,7 +188,6 @@
     </div>
 
 <script>
-    // 🌟 MULTI-USER SETUP: CLICK TO CHANGE NAME 🌟
     let myName = localStorage.getItem('jarvis_username');
     if (!myName) {
         myName = prompt("Welcome to J.A.R.V.I.S.\nWhat is your name? (Your data will be kept separate)");
@@ -200,7 +207,6 @@
         }
     }
 
-    // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
     let allSessions = JSON.parse(localStorage.getItem('jarvisSessions')) || {};
 
@@ -269,7 +275,6 @@
         }
     };
 
-    // 🌟 LIVE CPU & RAM FETCH 🌟
     setInterval(() => {
         fetch('/stats').then(res => res.json()).then(data => {
             if(document.getElementById('cpu-val')) document.getElementById('cpu-val').innerText = data.cpu + '%';
@@ -277,7 +282,6 @@
         }).catch(err => console.log(err));
     }, 2000);
 
-    // 🌟 STRICT GOOGLE HINDI VOICE SETUP 🌟
     let jarvisVoice = null;
     function loadVoices() {
         let availableVoices = window.speechSynthesis.getVoices();
@@ -358,6 +362,7 @@
         }
     }
 
+    // 🌟 NORMAL VOICE CATCHER 🌟
     recognition.onresult = (e) => {
         let transcript = Array.from(e.results).map(r => r[0].transcript).join('');
         document.getElementById('userInput').value = transcript;
@@ -398,6 +403,39 @@
         const file = fileInput.files[0];
         
         if (!text && !file) return;
+
+        // 🌟 NAYA: EASTER EGG COMMAND CATCHER (For both Type & Voice) 🌟
+        let checkText = text.toLowerCase();
+        
+        // 1. Sukuna Theme Trigger
+        if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) {
+            document.body.className = 'theme-sukuna';
+            input.value = "";
+            let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir.");
+            if (jarvisVoice) speech.voice = jarvisVoice;
+            window.speechSynthesis.speak(speech);
+            return; // Yahan se aage API ko request nahi jayegi
+        }
+        
+        // 2. 90s Retro Theme Trigger
+        if (checkText.includes("retro mode") || checkText.includes("hacker mode")) {
+            document.body.className = 'theme-retro';
+            input.value = "";
+            let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic.");
+            if (jarvisVoice) speech.voice = jarvisVoice;
+            window.speechSynthesis.speak(speech);
+            return;
+        }
+
+        // 3. Reset Default Theme
+        if (checkText.includes("protocol zero") || checkText.includes("normal mode")) {
+            document.body.className = '';
+            input.value = "";
+            let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface.");
+            if (jarvisVoice) speech.voice = jarvisVoice;
+            window.speechSynthesis.speak(speech);
+            return;
+        }
 
         window.speechSynthesis.cancel();
         document.getElementById("voiceMenu").classList.remove("show");
