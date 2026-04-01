@@ -8,43 +8,42 @@ import base64
 
 app = Flask(__name__)
 
-# 🌟 APNI GROQ API KEY YAHAN DAALEIN 🌟
-client = Groq(api_key="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")
+# 🌟 API KEY RENDER KE ENVIRONMENT SE AAYEGI 🌟
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-USER_NAME = "Nilabhra"
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- MEMORY MODULE ---
-short_term_memory = [] 
+# --- MULTI-USER MEMORY MODULE ---
+user_sessions = {} # Har user ki alag short-term chat history
 
-def load_brain():
+def load_brain(username):
+    filename = f"brain_{username}.txt"
     try:
-        if not os.path.exists('brain.txt'):
-            open('brain.txt', 'w').close()
-        with open('brain.txt', 'r', encoding='utf-8') as file:
+        if not os.path.exists(filename):
+            open(filename, 'w').close()
+        with open(filename, 'r', encoding='utf-8') as file:
             return file.read()
     except Exception:
         return ""
 
-def update_brain(new_fact):
+def update_brain(username, new_fact):
+    filename = f"brain_{username}.txt"
     try:
-        with open('brain.txt', 'a', encoding='utf-8') as file:
+        with open(filename, 'a', encoding='utf-8') as file:
             file.write(f"\n- {new_fact}")
         return True
     except Exception as e:
         return False
 
-my_knowledge = load_brain()
-
-def build_system_instruction():
-    global my_knowledge
+def build_system_instruction(username):
+    my_knowledge = load_brain(username)
     return (
-        f"You are J.A.R.V.I.S., the advanced AI assistant for {USER_NAME}. "
-        f"PERMANENT KNOWLEDGE ABOUT USER:\n{my_knowledge}\n\n"
+        f"You are J.A.R.V.I.S., the advanced AI assistant. You are currently talking to {username}. "
+        f"PERMANENT KNOWLEDGE ABOUT {username}:\n{my_knowledge}\n\n"
         f"Personality: Helpful, concise, and smart. "
         f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. "
-        f"Expertly analyze text, images, code, and documents uploaded by the user."
+        f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately."
     )
 
 def search_web(query):
@@ -66,37 +65,37 @@ def get_stats():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    global my_knowledge, short_term_memory
+    global user_sessions
     try:
         user_msg = request.form.get('message', '')
+        username = request.form.get('username', 'Guest').strip()
         uploaded_file = request.files.get('file')
         
-        # 1. PERMANENT MEMORY TRIGGERS
+        # User ki memory list nikaalo (agar nahi hai toh nayi banao)
+        if username not in user_sessions:
+            user_sessions[username] = []
+        short_term_memory = user_sessions[username]
+        my_knowledge = load_brain(username)
+        
+        # 1. PERMANENT MEMORY TRIGGERS (Specific to User)
         save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "yaad rakhna"]
         for trigger in save_triggers:
             if user_msg.lower().startswith(trigger):
                 fact = user_msg.lower().replace(trigger, "", 1).strip()
-                if update_brain(fact):
-                    my_knowledge += f"\n- {fact}"
+                if update_brain(username, fact):
                     short_term_memory.append({"role": "user", "content": user_msg})
                     short_term_memory.append({"role": "assistant", "content": f"Neural memory updated. I will remember that {fact}."})
-                    return jsonify({'reply': f"Neural memory updated, Sir. Maine save kar liya hai ki {fact}."})
+                    return jsonify({'reply': f"Neural memory updated. Maine save kar liya hai ki {fact}."})
                 else:
                     return jsonify({'reply': "Memory core error, Sir."})
 
-        # 2. CLEAR MEMORY COMMAND
+        # 2. CLEAR MEMORY COMMAND (Clears only this user's memory)
         if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
-            open('brain.txt', 'w', encoding='utf-8').close()
-            my_knowledge = ""
-            short_term_memory.clear() 
-            return jsonify({'reply': "Memory core wiped successfully, Sir. I have forgotten everything."})
+            open(f"brain_{username}.txt", 'w', encoding='utf-8').close()
+            user_sessions[username] = []
+            return jsonify({'reply': "Memory core wiped successfully. I have forgotten everything about you."})
 
-        # 3. SYSTEM COMMANDS
-        if "open google" in user_msg.lower():
-            os.system("start https://www.google.com")
-            return jsonify({'reply': "Google is now active, Sir."})
-
-        # 4. UNIVERSAL FILE READER
+        # 3. UNIVERSAL FILE READER
         file_text = ""
         filepath = None
         is_image = False
@@ -131,22 +130,21 @@ def chat():
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        # 5. WEB SEARCH CONTEXT
+        # 4. WEB SEARCH CONTEXT
         context = ""
         search_triggers = ["search", "who is", "latest", "news", "current"]
         if any(t in user_msg.lower() for t in search_triggers):
             context = f"Live Web Data: {search_web(user_msg)}\n\n"
 
-        # 6. PREPARE MESSAGES 
+        # 5. PREPARE MESSAGES 
         final_prompt = f"{context}{user_msg}"
-        
         if file_text:
             final_prompt += f"\n\n--- ATTACHED FILE CONTENT ---\n{file_text[:15000]}"
 
-        messages = [{"role": "system", "content": build_system_instruction()}]
+        messages = [{"role": "system", "content": build_system_instruction(username)}]
         messages.extend(short_term_memory)
 
-        # 7. DYNAMIC GROQ VISION/TEXT CALL
+        # 6. DYNAMIC GROQ VISION/TEXT CALL
         if is_image:
             vision_content = [
                 {"type": "text", "text": final_prompt if final_prompt.strip() else "Analyze this image and explain what you see in detail."},
@@ -166,7 +164,7 @@ def chat():
 
         reply = response.choices[0].message.content.strip()
 
-        # 8. SAVE CURRENT CHAT TO HISTORY
+        # 7. SAVE CURRENT CHAT TO USER'S HISTORY
         user_history_msg = user_msg
         if uploaded_file: user_history_msg = f"📎 [Attached: {uploaded_file.filename}] " + user_msg
         
@@ -174,13 +172,13 @@ def chat():
         short_term_memory.append({"role": "assistant", "content": reply})
         
         if len(short_term_memory) > 12: 
-            short_term_memory = short_term_memory[-12:]
+            user_sessions[username] = short_term_memory[-12:]
         
         return jsonify({'reply': reply})
 
     except Exception as e:
         print(f"API Error: {e}")
-        return jsonify({'reply': "Network interference detected, Sir."})
+        return jsonify({'reply': "Network interference detected. Please try again."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
