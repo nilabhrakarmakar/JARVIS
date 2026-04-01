@@ -9,7 +9,7 @@ import base64
 app = Flask(__name__)
 
 # 🌟 APNI GROQ API KEY YAHAN DAALEIN 🌟
-client = Groq(api_key="Your_GROQ_API_key_here")
+client = Groq(api_key="YOUR_GROQ_API_KEY_HERE")
 
 USER_NAME = "Nilabhra"
 UPLOAD_FOLDER = 'uploads'
