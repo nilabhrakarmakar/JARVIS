@@ -23,6 +23,8 @@
         .history-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.95rem; color: var(--text-primary); position: relative;}
         .history-item:hover { background-color: var(--surface-color); }
         .history-item .material-symbols-outlined { font-size: 1.1rem; color: var(--text-secondary); }
+        
+        /* DELETE CHAT ICON */
         .delete-icon { position: absolute; right: 10px; color: #ff5546 !important; font-size: 1.1rem !important; opacity: 0; transition: 0.2s; }
         .history-item:hover .delete-icon { opacity: 1; }
         .delete-icon:hover { color: #ff2222 !important; transform: scale(1.1); }
@@ -49,7 +51,7 @@
         .card:hover { background-color: #333537; }
         .card span.icon { align-self: flex-end; background: #131314; padding: 8px; border-radius: 50%; font-size: 1.2rem; }
 
-        /* CHAT BUBBLES */
+        /* CHAT BUBBLES (NO NOODLES FIX) */
         #chatbox { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 25px; padding-bottom: 20px; }
         .chat-row { display: flex; gap: 15px; width: 100%; }
         .user-row { flex-direction: row-reverse; }
@@ -178,14 +180,25 @@
     </div>
 
 <script>
-    // 🌟 MULTI-USER SETUP: ASK NAME ON FIRST VISIT 🌟
+    // 🌟 MULTI-USER SETUP: CLICK TO CHANGE NAME 🌟
     let myName = localStorage.getItem('jarvis_username');
     if (!myName) {
         myName = prompt("Welcome to J.A.R.V.I.S.\nWhat is your name? (Your data will be kept separate)");
         if (!myName || myName.trim() === "") myName = "Guest";
         localStorage.setItem('jarvis_username', myName.trim());
     }
-    document.getElementById('greetingText').innerText = "Hello, " + myName;
+    
+    const greetingDiv = document.getElementById('greetingText');
+    greetingDiv.innerHTML = `Hello, <span id="userNameDisplay" style="cursor: pointer; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px;" onclick="changeMyName()" title="Click to change name">${myName}</span>`;
+
+    function changeMyName() {
+        let newName = prompt("Enter new name for this device:");
+        if (newName && newName.trim() !== "") {
+            myName = newName.trim();
+            localStorage.setItem('jarvis_username', myName);
+            document.getElementById('userNameDisplay').innerText = myName;
+        }
+    }
 
     // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
@@ -419,7 +432,6 @@
         try {
             const formData = new FormData();
             formData.append('message', text);
-            // 🌟 NAYA: USERNAME BHEJ RAHE HAIN BACKEND KO 🌟
             formData.append('username', myName);
             if (file) formData.append('file', file);
 
