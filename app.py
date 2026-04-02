@@ -8,18 +8,16 @@ import base64
 
 app = Flask(__name__)
 
-# 🌟 RENDER KE LIYE API KEY SETUP 🌟
-# (Agar PC pe test karna ho toh ise change karke apni asli key daal lena)
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- MULTI-USER MEMORY MODULE ---
-user_sessions = {} # Har user ki alag short-term chat history
+# --- MULTI-USER MEMORY (EMAIL BASED SECURITY) ---
+user_sessions = {} 
 
-def load_brain(username):
-    filename = f"brain_{username}.txt"
+def load_brain(email):
+    filename = f"brain_{email}.txt"
     try:
         if not os.path.exists(filename):
             open(filename, 'w').close()
@@ -28,8 +26,8 @@ def load_brain(username):
     except Exception:
         return ""
 
-def update_brain(username, new_fact):
-    filename = f"brain_{username}.txt"
+def update_brain(email, new_fact):
+    filename = f"brain_{email}.txt"
     try:
         with open(filename, 'a', encoding='utf-8') as file:
             file.write(f"\n- {new_fact}")
@@ -37,11 +35,11 @@ def update_brain(username, new_fact):
     except Exception as e:
         return False
 
-def build_system_instruction(username):
-    my_knowledge = load_brain(username)
+def build_system_instruction(username, email):
+    my_knowledge = load_brain(email)
     return (
         f"You are J.A.R.V.I.S., the advanced AI assistant. You are currently talking to {username}. "
-        f"PERMANENT KNOWLEDGE ABOUT {username}:\n{my_knowledge}\n\n"
+        f"PERMANENT KNOWLEDGE ABOUT THIS USER:\n{my_knowledge}\n\n"
         f"Personality: Helpful, concise, and smart. "
         f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. "
         f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately."
@@ -70,20 +68,20 @@ def chat():
     try:
         user_msg = request.form.get('message', '')
         username = request.form.get('username', 'Guest').strip()
+        email = request.form.get('email', 'guest@local.com').strip()
         uploaded_file = request.files.get('file')
         
-        # User ki memory list nikaalo (agar nahi hai toh nayi banao)
-        if username not in user_sessions:
-            user_sessions[username] = []
-        short_term_memory = user_sessions[username]
-        my_knowledge = load_brain(username)
+        # User ki memory list nikaalo (Email se)
+        if email not in user_sessions:
+            user_sessions[email] = []
+        short_term_memory = user_sessions[email]
         
-        # 1. PERMANENT MEMORY TRIGGERS (Specific to User)
+        # 1. PERMANENT MEMORY TRIGGERS
         save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "yaad rakhna"]
         for trigger in save_triggers:
             if user_msg.lower().startswith(trigger):
                 fact = user_msg.lower().replace(trigger, "", 1).strip()
-                if update_brain(username, fact):
+                if update_brain(email, fact):
                     short_term_memory.append({"role": "user", "content": user_msg})
                     short_term_memory.append({"role": "assistant", "content": f"Neural memory updated. I will remember that {fact}."})
                     return jsonify({'reply': f"Neural memory updated. Maine save kar liya hai ki {fact}."})
@@ -92,8 +90,8 @@ def chat():
 
         # 2. CLEAR MEMORY COMMAND
         if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
-            open(f"brain_{username}.txt", 'w', encoding='utf-8').close()
-            user_sessions[username] = []
+            open(f"brain_{email}.txt", 'w', encoding='utf-8').close()
+            user_sessions[email] = []
             return jsonify({'reply': "Memory core wiped successfully. I have forgotten everything about you."})
 
         # 3. UNIVERSAL FILE READER
@@ -142,7 +140,7 @@ def chat():
         if file_text:
             final_prompt += f"\n\n--- ATTACHED FILE CONTENT ---\n{file_text[:15000]}"
 
-        messages = [{"role": "system", "content": build_system_instruction(username)}]
+        messages = [{"role": "system", "content": build_system_instruction(username, email)}]
         messages.extend(short_term_memory)
 
         # 6. DYNAMIC GROQ VISION/TEXT CALL
@@ -165,7 +163,7 @@ def chat():
 
         reply = response.choices[0].message.content.strip()
 
-        # 7. SAVE CURRENT CHAT TO USER'S HISTORY
+        # 7. SAVE TO HISTORY
         user_history_msg = user_msg
         if uploaded_file: user_history_msg = f"📎 [Attached: {uploaded_file.filename}] " + user_msg
         
@@ -173,7 +171,7 @@ def chat():
         short_term_memory.append({"role": "assistant", "content": reply})
         
         if len(short_term_memory) > 12: 
-            user_sessions[username] = short_term_memory[-12:]
+            user_sessions[email] = short_term_memory[-12:]
         
         return jsonify({'reply': reply})
 
