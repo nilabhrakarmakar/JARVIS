@@ -1,6 +1,7 @@
 Flask
-duckduckgo-search
 groq
+duckduckgo-search
 psutil
 PyPDF2
-gunicorn
+requests
+yfinance
