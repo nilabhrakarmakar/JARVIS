@@ -5,3 +5,4 @@ psutil
 PyPDF2
 requests
 yfinance
+gunicorn
