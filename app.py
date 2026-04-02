@@ -5,15 +5,18 @@ import os
 import psutil
 import PyPDF2 
 import base64 
+import requests
+import yfinance as yf
 
 app = Flask(__name__)
 
+# 🌟 API KEY (Render ya PC ke liye) 🌟
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- MULTI-USER MEMORY (EMAIL BASED SECURITY) ---
+# --- MULTI-USER MEMORY ---
 user_sessions = {} 
 
 def load_brain(email):
@@ -40,9 +43,10 @@ def build_system_instruction(username, email):
     return (
         f"You are J.A.R.V.I.S., the advanced AI assistant. You are currently talking to {username}. "
         f"PERMANENT KNOWLEDGE ABOUT THIS USER:\n{my_knowledge}\n\n"
-        f"Personality: Helpful, concise, and smart. "
+        f"Personality: Helpful, concise, badass, and smart. "
         f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. "
-        f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately."
+        f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately. "
+        f"If real-time data (like weather, stocks, or news) is provided in the prompt context, use it to give an accurate, human-like response."
     )
 
 def search_web(query):
@@ -53,6 +57,34 @@ def search_web(query):
                 return "\n".join([f"Title: {r['title']} | Content: {r['body']}" for r in results])
     except Exception:
         return "Global networks unreachable."
+
+# 🚀 NAYA: LIVE API FETCHERS 🚀
+def get_market_data():
+    try:
+        # Yahoo Finance se Nifty 50 aur Bank Nifty ka live/closing data nikal raha hai
+        nifty = yf.Ticker("^NSEI").history(period="1d")['Close'].iloc[-1]
+        bank_nifty = yf.Ticker("^NSEBANK").history(period="1d")['Close'].iloc[-1]
+        return f"[LIVE STOCK MARKET] Nifty 50 is at {nifty:.2f}, Bank Nifty is at {bank_nifty:.2f}"
+    except Exception as e:
+        return "[LIVE STOCK MARKET] API Error. Data unavailable."
+
+def get_weather(city="Bankura"): 
+    try:
+        # Bina API key ka mast Weather fetcher
+        res = requests.get(f"https://wttr.in/{city}?format=%C,+%t,+Humidity:%h,+Wind:%w")
+        return f"[LIVE WEATHER IN {city}] {res.text}"
+    except:
+        return "[LIVE WEATHER] Sensors offline."
+
+def get_news(query="India"):
+    try:
+        # DuckDuckGo se live news headlines
+        with DDGS() as ddgs:
+            results = [r for r in ddgs.news(query, max_results=3)]
+            news_str = " | ".join([r['title'] for r in results])
+            return f"[LIVE NEWS HEADLINES] {news_str}"
+    except:
+        return "[LIVE NEWS] Feed unreachable."
 
 @app.route('/')
 def home():
@@ -71,7 +103,6 @@ def chat():
         email = request.form.get('email', 'guest@local.com').strip()
         uploaded_file = request.files.get('file')
         
-        # User ki memory list nikaalo (Email se)
         if email not in user_sessions:
             user_sessions[email] = []
         short_term_memory = user_sessions[email]
@@ -88,7 +119,7 @@ def chat():
                 else:
                     return jsonify({'reply': "Memory core error, Sir."})
 
-        # 2. CLEAR MEMORY COMMAND
+        # 2. CLEAR MEMORY
         if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
             open(f"brain_{email}.txt", 'w', encoding='utf-8').close()
             user_sessions[email] = []
@@ -104,7 +135,6 @@ def chat():
         if uploaded_file and uploaded_file.filename != '':
             filepath = os.path.join(UPLOAD_FOLDER, uploaded_file.filename)
             uploaded_file.save(filepath)
-            
             ext = filepath.lower().split('.')[-1]
             try:
                 if ext == 'pdf':
@@ -125,18 +155,36 @@ def chat():
                     file_text = "[System Note: Unsupported file format.]"
             except Exception as e:
                 file_text = f"[System Note: Could not read the file due to an error: {str(e)}]"
-            
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        # 4. WEB SEARCH CONTEXT
+        # 🚀 4. THE REAL-TIME DATA INJECTION 🚀
         context = ""
-        search_triggers = ["search", "who is", "latest", "news", "current"]
-        if any(t in user_msg.lower() for t in search_triggers):
-            context = f"Live Web Data: {search_web(user_msg)}\n\n"
+        msg_lower = user_msg.lower()
+
+        # Web Search Trigger
+        if any(t in msg_lower for t in ["search", "who is"]):
+            context += f"Live Web Search: {search_web(user_msg)}\n"
+
+        # Stock Market Trigger
+        if any(w in msg_lower for w in ["nifty", "market", "stock", "share", "price", "sensex", "trading"]):
+            context += get_market_data() + "\n"
+
+        # Weather Trigger (Maine Bankura default set kar diya hai)
+        if any(w in msg_lower for w in ["weather", "mausam", "temperature", "barish", "rain"]):
+            context += get_weather("Bankura") + "\n"
+
+        # News Trigger
+        if any(w in msg_lower for w in ["news", "khabar", "samachar", "headlines", "latest"]):
+            context += get_news() + "\n"
+
+        # Agar koi bhi real-time data mila, toh usko final prompt mein aage chipka do
+        real_time_info = ""
+        if context:
+            real_time_info = f"--- J.A.R.V.I.S. REAL-TIME SENSORS ---\n{context}\n-----------------------------------\n\n"
 
         # 5. PREPARE MESSAGES 
-        final_prompt = f"{context}{user_msg}"
+        final_prompt = f"{real_time_info}{user_msg}"
         if file_text:
             final_prompt += f"\n\n--- ATTACHED FILE CONTENT ---\n{file_text[:15000]}"
 
