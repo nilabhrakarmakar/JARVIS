@@ -135,6 +135,9 @@
                     <span class="material-symbols-outlined">record_voice_over</span>
                     <span>Google हिन्दी</span>
                 </div>
+                <div id="cpu-stat">CPU: <span id="cpu-val">--</span></div>
+                <div id="ram-stat">RAM: <span id="ram-val">--</span></div>
+                
                 <img id="navProfilePic" class="profile-pic" src="" alt="Profile" onclick="logout()" title="Click to Logout" style="display:none;">
             </div>
         </div>
@@ -207,7 +210,6 @@
 <script>
     // 🌟 GOOGLE AUTHENTICATION LOGIC 🌟
     function handleGoogleLogin(response) {
-        // Decode the JWT token from Google
         const base64Url = response.credential.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
@@ -215,12 +217,11 @@
         }).join(''));
         const data = JSON.parse(jsonPayload);
 
-        // Save User Info securely in Browser
         localStorage.setItem('jarvis_username', data.given_name || data.name);
         localStorage.setItem('jarvis_email', data.email);
         localStorage.setItem('jarvis_pic', data.picture);
 
-        initApp(); // Start JARVIS
+        initApp(); 
     }
 
     function initApp() {
@@ -229,11 +230,9 @@
         let myPic = localStorage.getItem('jarvis_pic');
 
         if(myName && myEmail) {
-            // Hide Login Screen
             document.getElementById('loginOverlay').style.display = 'none';
-            // Set Name
             document.getElementById('greetingText').innerText = "Hello, " + myName;
-            // Set Profile Picture
+            
             let navPic = document.getElementById('navProfilePic');
             navPic.src = myPic;
             navPic.style.display = 'block';
@@ -407,11 +406,11 @@
         }
     }
 
-    // 🌟 EASTER EGG COMMAND CATCHER 🌟
     recognition.onresult = (e) => {
         let transcript = Array.from(e.results).map(r => r[0].transcript).join('');
         let checkText = transcript.toLowerCase();
 
+        // 🌟 EASTER EGG COMMANDS 🌟
         if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) {
             document.body.className = 'theme-sukuna';
             document.getElementById('userInput').value = ""; 
@@ -494,9 +493,8 @@
         let userDisplayMsg = text;
         if (file) userDisplayMsg = `📎 [Attached: ${file.name}]<br>` + text;
 
-        // 🌟 NAYA: USER AVATAR KI JAGAH GOOGLE PROFILE PIC 🌟
         let myPic = localStorage.getItem('jarvis_pic') || '';
-        let avatarHTML = myPic ? `<img src="${myPic}" style="width:100%; height:100%; border-radius:50%;">` : `<span class="material-symbols-outlined">person</span>`;
+        let avatarHTML = myPic ? `<img src="${myPic}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<span class="material-symbols-outlined">person</span>`;
 
         chatbox.innerHTML += `
             <div class="chat-row user-row">
@@ -524,7 +522,6 @@
             const formData = new FormData();
             formData.append('message', text);
             
-            // EMAIL KO BACKEND MEIN BHEJO
             let myName = localStorage.getItem('jarvis_username');
             let myEmail = localStorage.getItem('jarvis_email');
             formData.append('username', myName);
