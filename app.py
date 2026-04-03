@@ -46,7 +46,7 @@ def build_system_instruction(username, email):
         f"Personality: Helpful, concise, badass, and smart. "
         f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. "
         f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately. "
-        f"If real-time data (like weather, stocks, or news) is provided in the prompt context, use it to give an accurate, human-like response."
+        f"If real-time data (like weather, stocks, news, or web search) is provided in the prompt context, you MUST use it to give a highly accurate, up-to-date, human-like response. Never say you don't have real-time data if it is provided in the context."
     )
 
 def search_web(query):
@@ -58,10 +58,9 @@ def search_web(query):
     except Exception:
         return "Global networks unreachable."
 
-# 🚀 NAYA: LIVE API FETCHERS 🚀
+# 🚀 NAYA: LIVE API FETCHERS (Smarter) 🚀
 def get_market_data():
     try:
-        # Yahoo Finance se Nifty 50 aur Bank Nifty ka live/closing data nikal raha hai
         nifty = yf.Ticker("^NSEI").history(period="1d")['Close'].iloc[-1]
         bank_nifty = yf.Ticker("^NSEBANK").history(period="1d")['Close'].iloc[-1]
         return f"[LIVE STOCK MARKET] Nifty 50 is at {nifty:.2f}, Bank Nifty is at {bank_nifty:.2f}"
@@ -70,19 +69,18 @@ def get_market_data():
 
 def get_weather(city="Bankura"): 
     try:
-        # Bina API key ka mast Weather fetcher
         res = requests.get(f"https://wttr.in/{city}?format=%C,+%t,+Humidity:%h,+Wind:%w")
         return f"[LIVE WEATHER IN {city}] {res.text}"
     except:
         return "[LIVE WEATHER] Sensors offline."
 
-def get_news(query="India"):
+def get_news(query):
     try:
-        # DuckDuckGo se live news headlines
         with DDGS() as ddgs:
-            results = [r for r in ddgs.news(query, max_results=3)]
-            news_str = " | ".join([r['title'] for r in results])
-            return f"[LIVE NEWS HEADLINES] {news_str}"
+            # Ab ye default India ki jagah user ke question ki news dhoondhega
+            results = [r for r in ddgs.news(query, max_results=4)]
+            news_str = " | ".join([f"{r['title']}: {r['body']}" for r in results])
+            return f"[LIVE NEWS HEADLINES for '{query}'] {news_str}"
     except:
         return "[LIVE NEWS] Feed unreachable."
 
@@ -158,13 +156,15 @@ def chat():
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        # 🚀 4. THE REAL-TIME DATA INJECTION 🚀
+        # 🚀 4. THE REAL-TIME DATA INJECTION (Smarter Triggers) 🚀
         context = ""
         msg_lower = user_msg.lower()
 
-        # Web Search Trigger
-        if any(t in msg_lower for t in ["search", "who is"]):
-            context += f"Live Web Search: {search_web(user_msg)}\n"
+        # Web Search & News Trigger (Bahut saare words add kar diye)
+        search_triggers = ["search", "who is", "update", "updates", "new", "latest", "news", "khabar", "samachar", "aaj", "kya chal raha", "tell me about"]
+        if any(t in msg_lower for t in search_triggers):
+            context += f"Live Web Data: {search_web(user_msg)}\n"
+            context += f"Live News Data: {get_news(user_msg)}\n"
 
         # Stock Market Trigger
         if any(w in msg_lower for w in ["nifty", "market", "stock", "share", "price", "sensex", "trading"]):
@@ -174,11 +174,6 @@ def chat():
         if any(w in msg_lower for w in ["weather", "mausam", "temperature", "barish", "rain"]):
             context += get_weather("Bankura") + "\n"
 
-        # News Trigger
-        if any(w in msg_lower for w in ["news", "khabar", "samachar", "headlines", "latest"]):
-            context += get_news() + "\n"
-
-        # Agar koi bhi real-time data mila, toh usko final prompt mein aage chipka do
         real_time_info = ""
         if context:
             real_time_info = f"--- J.A.R.V.I.S. REAL-TIME SENSORS ---\n{context}\n-----------------------------------\n\n"
