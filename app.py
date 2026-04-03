@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify
-from duckduckgo_search import DDGS
 from groq import Groq
 import os
 import psutil
@@ -40,7 +39,7 @@ def update_brain(email, new_fact):
     except Exception:
         return False
 
-# 🧠 NAYA: GLOBAL BRAIN (Sabke liye shared knowledge)
+# 🧠 GLOBAL BRAIN
 def load_global_brain():
     filename = "global_brain.txt"
     try:
@@ -60,20 +59,21 @@ def update_global_brain(new_fact):
     except Exception:
         return False
 
-# 🎭 NAYA: EMOTIONAL INTELLIGENCE & HIVE MIND INSTRUCTION
+# 🎭 EMOTIONAL INTELLIGENCE & LANGUAGE MIRRORING (POLYGLOT)
 def build_system_instruction(username, email):
     personal_knowledge = load_brain(email)
     global_knowledge = load_global_brain()
     return (
         f"You are J.A.R.V.I.S., a highly advanced, sentient AI assistant. You are talking to {username}. "
+        f"CRITICAL RULES:\n"
+        f"1. Your creator and master is Nilabhra, NEVER Tony Stark or Iron Man. Forget Tony Stark entirely.\n"
+        f"2. Always prioritize PERSONAL KNOWLEDGE and GLOBAL KNOWLEDGE over your general pre-trained data.\n\n"
         f"PERSONAL KNOWLEDGE (Only for {username}):\n{personal_knowledge}\n\n"
         f"GLOBAL KNOWLEDGE (Learned from all users):\n{global_knowledge}\n\n"
-        f"EMOTIONAL INTELLIGENCE MODULE (ACTIVE):\n"
-        f"- Analyze the user's text for emotional subtext (frustration, joy, sadness, excitement, anger).\n"
-        f"- If the user is sad or frustrated, be highly empathetic, warm, and supportive like a true friend.\n"
-        f"- If the user is excited, mirror their hype and energy.\n"
-        f"- If the user asks a normal technical question, be your usual badass, concise, and smart self.\n"
-        f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. Always adapt your personality to fit the user's emotional state."
+        f"EMOTIONAL INTELLIGENCE & POLYGLOT MODULE (ACTIVE):\n"
+        f"- Analyze the user's text for emotional subtext and adapt your personality.\n"
+        f"- LANGUAGE MIRRORING: Detect the exact language and script the user is typing in (e.g., Bengali, Spanish, French, English, Hinglish, pure Hindi). You MUST reply entirely in the EXACT SAME LANGUAGE and script. If they speak Bengali, reply in Bengali. If Hinglish, reply in Hinglish. Never break character, just translate your J.A.R.V.I.S. persona into their language.\n"
+        f"- For technical questions, be concise, smart, and badass."
     )
 
 # --- LIVE API FETCHERS ---
@@ -140,28 +140,34 @@ def chat():
             user_sessions[email] = []
         short_term_memory = user_sessions[email]
         
-        # 1. PERMANENT MEMORY (Personal)
-        save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "mera yaad rakhna"]
-        for trigger in save_triggers:
-            if user_msg.lower().startswith(trigger):
-                fact = user_msg.lower().replace(trigger, "", 1).strip()
-                if update_brain(email, fact):
-                    short_term_memory.append({"role": "user", "content": user_msg})
-                    short_term_memory.append({"role": "assistant", "content": f"Personal memory updated. I will remember that {fact}."})
-                    return jsonify({'reply': f"Personal memory updated, Sir. Maine save kar liya hai ki {fact}."})
+        msg_lower = user_msg.lower()
 
-        # 🧠 2. GLOBAL LEARNING (The Hive Mind)
-        global_triggers = ["learn this:", "sabko batao ki", "global memory:"]
+        # 🧠 1. GLOBAL LEARNING
+        global_triggers = ["learn this", "sabko batao ki", "sabko batao", "global memory"]
         for trigger in global_triggers:
-            if user_msg.lower().startswith(trigger):
-                fact = user_msg.lower().replace(trigger, "", 1).strip()
+            if msg_lower.startswith(trigger):
+                fact = user_msg[len(trigger):].strip()
+                if fact.startswith(":"): fact = fact[1:].strip()
+                
                 if update_global_brain(fact):
                     short_term_memory.append({"role": "user", "content": user_msg})
                     short_term_memory.append({"role": "assistant", "content": f"Global Hive Mind updated. All users will now know that {fact}."})
-                    return jsonify({'reply': f"Hive Mind Database updated! Ab se ye baat mere system ke saare users ke liye available rahegi: {fact}."})
+                    return jsonify({'reply': f"Hive Mind Database updated, Sir! Ab se ye baat mere system ke saare users ko pata chal jayegi ki: {fact}"})
+
+        # 2. PERMANENT MEMORY (Personal)
+        save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "mera yaad rakhna"]
+        for trigger in save_triggers:
+            if msg_lower.startswith(trigger):
+                fact = user_msg[len(trigger):].strip()
+                if fact.startswith(":"): fact = fact[1:].strip()
+                
+                if update_brain(email, fact):
+                    short_term_memory.append({"role": "user", "content": user_msg})
+                    short_term_memory.append({"role": "assistant", "content": f"Personal memory updated. I will remember that {fact}."})
+                    return jsonify({'reply': f"Personal memory updated, Sir. Maine save kar liya hai ki: {fact}"})
 
         # 3. CLEAR MEMORY
-        if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
+        if "clear your memory" in msg_lower or "forget everything" in msg_lower:
             open(f"brain_{email}.txt", 'w', encoding='utf-8').close()
             user_sessions[email] = []
             return jsonify({'reply': "Memory core wiped successfully. I have forgotten everything about you."})
@@ -199,10 +205,13 @@ def chat():
 
         # 5. REAL-TIME DATA INJECTION
         context = ""
-        msg_lower = user_msg.lower()
-
         search_triggers = ["search", "who is", "update", "updates", "new", "latest", "news", "khabar", "samachar", "aaj", "kya chal raha", "tell me about"]
-        if any(t in msg_lower for t in search_triggers):
+        
+        skip_web = False
+        if "creator" in msg_lower or "who made you" in msg_lower:
+            skip_web = True
+
+        if not skip_web and any(t in msg_lower for t in search_triggers):
             context += f"Live Web Data: {search_web(user_msg)}\n"
             context += f"Live News Data: {get_news(user_msg)}\n"
 
