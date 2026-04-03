@@ -144,7 +144,6 @@
             <div class="welcome-screen" id="welcome-screen">
                 <div class="greeting" id="greetingText">Hello, User</div>
                 <h2 style="color: var(--text-secondary); font-weight: 400; margin-bottom: 30px;">How can I help you today?</h2>
-                
                 <div class="card-grid">
                     <div class="card" onclick="setPrompt('Write a Python script to automate file organization')">
                         <p>Write a Python script to automate file organization</p>
@@ -253,7 +252,6 @@
         }
     }
 
-    // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
     let allSessions = JSON.parse(localStorage.getItem('jarvisSessions')) || {};
 
@@ -319,7 +317,7 @@
         }).catch(err => console.log(err));
     }, 2000);
 
-    // 🌟 100% FIXED: DYNAMIC VOICE LOADER 🌟
+    // 🌟 100% FIXED: SMARTER DYNAMIC VOICE ENGINE 🌟
     let availableVoices = [];
     
     function loadVoices() {
@@ -328,44 +326,36 @@
             document.getElementById('currentVoiceName').innerText = "Google हिन्दी";
         }
     }
-    // Browser ko bol rahe hain "Jab aawaz load ho jaye, tabhi list update karna"
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
     window.onload = () => { 
         initApp(); 
-        loadVoices(); // Initial try
+        loadVoices(); 
     };
 
     function getDynamicVoice(text) {
         let selectedVoice = null;
-        let langName = "Voice Unavailable"; 
+        let langName = "Setting Voice..."; 
         let langCode = "hi-IN";
+        let baseLang = "hi";
 
-        // Step 1: Detect Language from Text
+        // Step 1: Text scan karke Language pehchano
         if (/[\u0980-\u09FF]/.test(text)) {
-            langCode = "bn-IN"; // Bengali
-            langName = "বাংলা Voice";
+            langCode = "bn-IN"; baseLang = "bn"; langName = "বাংলা Voice";
         } else if (/[áéíóúñ¿¡]/i.test(text)) {
-            langCode = "es"; // Spanish
-            langName = "Español Voice";
+            langCode = "es-ES"; baseLang = "es"; langName = "Español Voice";
         } else if (/[\u0900-\u097F]/.test(text)) {
-            langCode = "hi-IN"; // Hindi
-            langName = "Google हिन्दी";
+            langCode = "hi-IN"; baseLang = "hi"; langName = "Google हिन्दी";
         } else {
-            langCode = "hi-IN"; // Default Hinglish
-            langName = "Google हिन्दी";
+            langCode = "hi-IN"; baseLang = "hi"; langName = "Google हिन्दी";
         }
 
-        // Step 2: Search for the exact voice in Browser
+        // Step 2: Dhoondho ki wo aawaz PC/Browser me hai ya nahi
         selectedVoice = availableVoices.find(v => v.lang.includes(langCode) && v.name.includes('Google'));
         if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.includes(langCode));
+        if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.startsWith(baseLang)); // Jaise sirf 'bn'
 
-        // Step 3: Agar fir bhi aawaz nahi mili, toh kisi tarah bas bol do (Default)
-        if (!selectedVoice && availableVoices.length > 0) {
-            selectedVoice = availableVoices.find(v => v.name.includes('Hindi') || v.name.includes('हिन्दी')) || availableVoices[0];
-            langName = "Fallback Voice";
-        }
-
+        // RETURN: Hum selectedVoice null bhi bhej sakte hain, taaki browser galat aawaz na lagaye
         return { voice: selectedVoice, name: langName, code: langCode };
     }
 
@@ -409,6 +399,7 @@
             wakeRecognition.stop(); 
             let dynamic = getDynamicVoice("Haan Sir"); 
             const speech = new SpeechSynthesisUtterance("Haan Sir, bataiye?");
+            speech.lang = dynamic.code;
             if (dynamic.voice) speech.voice = dynamic.voice;
             speech.onend = function() { toggleMic(); };
             window.speechSynthesis.speak(speech);
@@ -445,13 +436,13 @@
         let transcript = Array.from(e.results).map(r => r[0].transcript).join('');
         let checkText = transcript.toLowerCase();
 
-        // 🌟 EASTER EGG COMMANDS 🌟
         if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) {
             document.body.className = 'theme-sukuna';
             document.getElementById('userInput').value = ""; 
             toggleMic(); 
             let dynamic = getDynamicVoice("Domain Expansion");
             let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir.");
+            speech.lang = dynamic.code;
             if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
@@ -463,6 +454,7 @@
             toggleMic();
             let dynamic = getDynamicVoice("Retro mode activated");
             let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic.");
+            speech.lang = dynamic.code;
             if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
@@ -474,6 +466,7 @@
             toggleMic();
             let dynamic = getDynamicVoice("Protocol Zero initialized");
             let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface.");
+            speech.lang = dynamic.code;
             if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
@@ -519,9 +512,9 @@
         if (!text && !file) return;
 
         let checkText = text.toLowerCase();
-        if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) { document.body.className = 'theme-sukuna'; input.value = ""; let dyn = getDynamicVoice("Domain"); let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
-        if (checkText.includes("retro mode") || checkText.includes("hacker mode")) { document.body.className = 'theme-retro'; input.value = ""; let dyn = getDynamicVoice("Retro"); let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
-        if (checkText.includes("protocol zero") || checkText.includes("normal mode")) { document.body.className = ''; input.value = ""; let dyn = getDynamicVoice("Protocol"); let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) { document.body.className = 'theme-sukuna'; input.value = ""; let dyn = getDynamicVoice("Domain"); let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir."); speech.lang = dyn.code; if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("retro mode") || checkText.includes("hacker mode")) { document.body.className = 'theme-retro'; input.value = ""; let dyn = getDynamicVoice("Retro"); let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic."); speech.lang = dyn.code; if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("protocol zero") || checkText.includes("normal mode")) { document.body.className = ''; input.value = ""; let dyn = getDynamicVoice("Protocol"); let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface."); speech.lang = dyn.code; if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
 
         window.speechSynthesis.cancel();
         document.getElementById("voiceMenu").classList.remove("show");
@@ -577,21 +570,23 @@
                 saveCurrentSession(text || "File Analysis");
             });
 
-            // 🌟 THE MAGIC: DYNAMIC VOICE ENGINE 🌟
+            // 🌟 100% FIXED VOICE EXECUTION 🌟
             const cleanText = data.reply.replace(/[*#_`]/g, ''); 
-            
-            // Text bhej kar pata lagao ki aawaz konsi chahiye
             let dynamicVoiceData = getDynamicVoice(cleanText);
             
-            // Badge UI Update (Dikhane ke liye ki language badli hai)
             document.getElementById('currentVoiceName').innerText = dynamicVoiceData.name;
             document.getElementById('voiceBadgeDiv').style.color = "var(--accent)";
             setTimeout(() => { document.getElementById('voiceBadgeDiv').style.color = "var(--text-secondary)"; }, 2000);
 
             const speech = new SpeechSynthesisUtterance(cleanText);
-            speech.lang = dynamicVoiceData.code; // Language Code (jaise bn-IN)
+            
+            // 🚨 YEH SABSE ZAROORI LINE HAI 🚨
+            speech.lang = dynamicVoiceData.code; // Ab browser ko pata hai ki Bengali padhna hai
+            
+            // Agar specifically us browser mein Bengali voice hui, toh laga do
+            // Agar nahi hui, toh browser Google ki network TTS automatically fetch kar lega kyunki humne speech.lang set kar diya hai!
             if (dynamicVoiceData.voice) {
-                speech.voice = dynamicVoiceData.voice; // Asli Aawaz set karo
+                speech.voice = dynamicVoiceData.voice; 
             }
             
             speech.onend = function() {
