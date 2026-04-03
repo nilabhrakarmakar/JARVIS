@@ -16,7 +16,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: var(--bg-color); color: var(--text-primary); font-family: var(--font-main); height: 100vh; display: flex; overflow: hidden; transition: background-color 0.8s, color 0.8s; }
         
-        /* LOGIN OVERLAY CSS */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .login-box { background: var(--surface-color); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
@@ -42,10 +41,9 @@
         
         .sys-stats { font-size: 0.9rem; display: flex; align-items: center; gap: 20px; background: var(--surface-color); padding: 8px 18px; border-radius: 30px;}
         .sys-stats span { color: var(--accent); font-weight: 600;}
-        .voice-badge { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); border-right: 1px solid #444; padding-right: 15px; margin-right: -5px; }
+        .voice-badge { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); border-right: 1px solid #444; padding-right: 15px; margin-right: -5px; transition: 0.3s;}
         .voice-badge .material-symbols-outlined { font-size: 1.1rem; color: var(--text-secondary); font-weight: normal; }
         
-        /* PROFILE PIC CSS */
         .profile-pic { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); cursor: pointer; transition: 0.2s;}
         .profile-pic:hover { transform: scale(1.1); border-color: #ff5546; }
 
@@ -131,9 +129,9 @@
                 J.A.R.V.I.S.
             </div>
             <div class="sys-stats">
-                <div class="voice-badge" title="Active Voice Engine">
+                <div class="voice-badge" title="Active Voice Engine" id="voiceBadgeDiv">
                     <span class="material-symbols-outlined">record_voice_over</span>
-                    <span>Google हिन्दी</span>
+                    <span id="currentVoiceName">Google हिन्दी</span>
                 </div>
                 <div id="cpu-stat">CPU: <span id="cpu-val">--</span></div>
                 <div id="ram-stat">RAM: <span id="ram-val">--</span></div>
@@ -208,7 +206,6 @@
     </div>
 
 <script>
-    // 🌟 GOOGLE AUTHENTICATION LOGIC 🌟
     function handleGoogleLogin(response) {
         const base64Url = response.credential.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -256,9 +253,8 @@
         }
     }
 
-    window.onload = () => { initApp(); };
+    window.onload = () => { initApp(); window.speechSynthesis.getVoices(); };
 
-    // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
     let allSessions = JSON.parse(localStorage.getItem('jarvisSessions')) || {};
 
@@ -317,7 +313,6 @@
         updateSidebarUI();
     }
 
-    // 🌟 LIVE CPU & RAM FETCH 🌟
     setInterval(() => {
         fetch('/stats').then(res => res.json()).then(data => {
             if(document.getElementById('cpu-val')) document.getElementById('cpu-val').innerText = data.cpu + '%';
@@ -325,15 +320,41 @@
         }).catch(err => console.log(err));
     }, 2000);
 
-    // 🌟 STRICT GOOGLE HINDI VOICE SETUP 🌟
-    let jarvisVoice = null;
-    function loadVoices() {
-        let availableVoices = window.speechSynthesis.getVoices();
-        jarvisVoice = availableVoices.find(v => v.name === 'Google हिन्दी');
-        if (!jarvisVoice) jarvisVoice = availableVoices.find(v => v.name.includes('Google') && (v.name.includes('हिन्दी') || v.name.includes('Hindi')));
+    // 🌟 NAYA: DYNAMIC LANGUAGE DETECTION ENGINE 🌟
+    function getDynamicVoice(text) {
+        let voices = window.speechSynthesis.getVoices();
+        let selectedVoice = null;
+        let langName = "Google हिन्दी"; 
+        let langCode = "hi-IN";
+
+        // Regex se text padh kar script pehchaano
+        if (/[\u0980-\u09FF]/.test(text)) {
+            // Bengali Text mila
+            langCode = "bn-IN";
+            langName = "Google বাংলা";
+        } else if (/[áéíóúñ¿¡]/i.test(text)) {
+            // Spanish Text mila
+            langCode = "es-ES";
+            langName = "Google Español";
+        } else if (/[\u0900-\u097F]/.test(text)) {
+            // Pure Hindi Devanagari mili
+            langCode = "hi-IN";
+            langName = "Google हिन्दी";
+        } else {
+            // Default Hinglish / English
+            langCode = "hi-IN"; 
+            langName = "Google हिन्दी";
+        }
+
+        // 1. Google ki original voice dhoondho us language mein
+        selectedVoice = voices.find(v => v.lang.includes(langCode) && v.name.includes('Google'));
+        // 2. Agar Google ki na mile, toh koi bhi voice dhoondho us language ki
+        if (!selectedVoice) selectedVoice = voices.find(v => v.lang.includes(langCode));
+        // 3. Agar kuch na mile, toh Default Hindi pe wapas aa jao
+        if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Hindi') || v.name.includes('हिन्दी'));
+
+        return { voice: selectedVoice, name: langName, code: langCode };
     }
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
 
     function stopAudio() { 
         window.speechSynthesis.cancel(); 
@@ -373,8 +394,9 @@
         let transcript = e.results[e.results.length - 1][0].transcript.toLowerCase();
         if (transcript.includes("jarvis") || transcript.includes("wake up")) {
             wakeRecognition.stop(); 
+            let dynamic = getDynamicVoice("Haan Sir"); // Default
             const speech = new SpeechSynthesisUtterance("Haan Sir, bataiye?");
-            if (jarvisVoice) speech.voice = jarvisVoice;
+            if (dynamic.voice) speech.voice = dynamic.voice;
             speech.onend = function() { toggleMic(); };
             window.speechSynthesis.speak(speech);
         }
@@ -415,8 +437,9 @@
             document.body.className = 'theme-sukuna';
             document.getElementById('userInput').value = ""; 
             toggleMic(); 
+            let dynamic = getDynamicVoice("Domain Expansion");
             let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir.");
-            if (jarvisVoice) speech.voice = jarvisVoice;
+            if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
         }
@@ -425,8 +448,9 @@
             document.body.className = 'theme-retro';
             document.getElementById('userInput').value = ""; 
             toggleMic();
+            let dynamic = getDynamicVoice("Retro mode activated");
             let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic.");
-            if (jarvisVoice) speech.voice = jarvisVoice;
+            if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
         }
@@ -435,8 +459,9 @@
             document.body.className = '';
             document.getElementById('userInput').value = ""; 
             toggleMic();
+            let dynamic = getDynamicVoice("Protocol Zero initialized");
             let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface.");
-            if (jarvisVoice) speech.voice = jarvisVoice;
+            if (dynamic.voice) speech.voice = dynamic.voice;
             window.speechSynthesis.speak(speech);
             return;
         }
@@ -481,9 +506,9 @@
         if (!text && !file) return;
 
         let checkText = text.toLowerCase();
-        if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) { document.body.className = 'theme-sukuna'; input.value = ""; let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir."); if (jarvisVoice) speech.voice = jarvisVoice; window.speechSynthesis.speak(speech); return; }
-        if (checkText.includes("retro mode") || checkText.includes("hacker mode")) { document.body.className = 'theme-retro'; input.value = ""; let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic."); if (jarvisVoice) speech.voice = jarvisVoice; window.speechSynthesis.speak(speech); return; }
-        if (checkText.includes("protocol zero") || checkText.includes("normal mode")) { document.body.className = ''; input.value = ""; let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface."); if (jarvisVoice) speech.voice = jarvisVoice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("domain expansion") || checkText.includes("malevolent shrine")) { document.body.className = 'theme-sukuna'; input.value = ""; let dyn = getDynamicVoice("Domain"); let speech = new SpeechSynthesisUtterance("Domain Expansion... Malevolent Shrine. Welcome to my domain, Sir."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("retro mode") || checkText.includes("hacker mode")) { document.body.className = 'theme-retro'; input.value = ""; let dyn = getDynamicVoice("Retro"); let speech = new SpeechSynthesisUtterance("Retro mode activated. Initializing 90s aesthetic."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
+        if (checkText.includes("protocol zero") || checkText.includes("normal mode")) { document.body.className = ''; input.value = ""; let dyn = getDynamicVoice("Protocol"); let speech = new SpeechSynthesisUtterance("Protocol Zero initialized. Reverting to standard interface."); if (dyn.voice) speech.voice = dyn.voice; window.speechSynthesis.speak(speech); return; }
 
         window.speechSynthesis.cancel();
         document.getElementById("voiceMenu").classList.remove("show");
@@ -539,9 +564,20 @@
                 saveCurrentSession(text || "File Analysis");
             });
 
+            // 🌟 YAHAN CALL HOGA NAYA VOICE ENGINE 🌟
             const cleanText = data.reply.replace(/[*#_`]/g, ''); 
+            
+            // Text ko scan karo aur sahi aawaz nikalo
+            let dynamicVoiceData = getDynamicVoice(cleanText);
+            
+            // Badge UI Update karo
+            document.getElementById('currentVoiceName').innerText = dynamicVoiceData.name;
+            document.getElementById('voiceBadgeDiv').style.color = "var(--accent)";
+            setTimeout(() => { document.getElementById('voiceBadgeDiv').style.color = "var(--text-secondary)"; }, 2000);
+
             const speech = new SpeechSynthesisUtterance(cleanText);
-            if (jarvisVoice) speech.voice = jarvisVoice;
+            speech.lang = dynamicVoiceData.code; // Sahi language tag
+            if (dynamicVoiceData.voice) speech.voice = dynamicVoiceData.voice; // Sahi Voice
             
             speech.onend = function() {
                 if (isMicOn) { try { recognition.start(); } catch (e) {} } 
