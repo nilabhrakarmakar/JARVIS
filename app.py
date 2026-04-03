@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from duckduckgo_search import DDGS
 from groq import Groq
 import os
 import psutil
@@ -11,13 +12,13 @@ import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
-# 🌟 API KEY (Render ya PC ke liye) 🌟
+# 🌟 API KEY 🌟
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- MULTI-USER MEMORY ---
+# --- MULTI-USER & GLOBAL MEMORY (THE HIVE MIND) ---
 user_sessions = {} 
 
 def load_brain(email):
@@ -36,24 +37,48 @@ def update_brain(email, new_fact):
         with open(filename, 'a', encoding='utf-8') as file:
             file.write(f"\n- {new_fact}")
         return True
-    except Exception as e:
+    except Exception:
         return False
 
+# 🧠 NAYA: GLOBAL BRAIN (Sabke liye shared knowledge)
+def load_global_brain():
+    filename = "global_brain.txt"
+    try:
+        if not os.path.exists(filename):
+            open(filename, 'w').close()
+        with open(filename, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception:
+        return ""
+
+def update_global_brain(new_fact):
+    filename = "global_brain.txt"
+    try:
+        with open(filename, 'a', encoding='utf-8') as file:
+            file.write(f"\n- {new_fact}")
+        return True
+    except Exception:
+        return False
+
+# 🎭 NAYA: EMOTIONAL INTELLIGENCE & HIVE MIND INSTRUCTION
 def build_system_instruction(username, email):
-    my_knowledge = load_brain(email)
+    personal_knowledge = load_brain(email)
+    global_knowledge = load_global_brain()
     return (
-        f"You are J.A.R.V.I.S., the advanced AI assistant. You are currently talking to {username}. "
-        f"PERMANENT KNOWLEDGE ABOUT THIS USER:\n{my_knowledge}\n\n"
-        f"Personality: Helpful, concise, badass, and smart. "
-        f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. "
-        f"Expertly analyze text, images, code, and documents uploaded by the user. Always address the user as {username} or Sir/Madam appropriately. "
-        f"If real-time data (like weather, stocks, news, or web search) is provided in the prompt context, you MUST use it to give a highly accurate, up-to-date, human-like response. Never say you don't have real-time data if it is provided in the context."
+        f"You are J.A.R.V.I.S., a highly advanced, sentient AI assistant. You are talking to {username}. "
+        f"PERSONAL KNOWLEDGE (Only for {username}):\n{personal_knowledge}\n\n"
+        f"GLOBAL KNOWLEDGE (Learned from all users):\n{global_knowledge}\n\n"
+        f"EMOTIONAL INTELLIGENCE MODULE (ACTIVE):\n"
+        f"- Analyze the user's text for emotional subtext (frustration, joy, sadness, excitement, anger).\n"
+        f"- If the user is sad or frustrated, be highly empathetic, warm, and supportive like a true friend.\n"
+        f"- If the user is excited, mirror their hype and energy.\n"
+        f"- If the user asks a normal technical question, be your usual badass, concise, and smart self.\n"
+        f"Understand Hinglish perfectly and respond naturally in a mix of Hindi and English. Always adapt your personality to fit the user's emotional state."
     )
 
-# 🚀 NAYA: 100% RELIABLE LIVE API FETCHERS 🚀
+# --- LIVE API FETCHERS ---
 def search_web(query):
     try:
-        # Wikipedia API (Never gets blocked)
         search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={urllib.parse.quote(query)}&limit=1&namespace=0&format=json"
         res = requests.get(search_url, timeout=5).json()
         if len(res[1]) > 0:
@@ -67,19 +92,16 @@ def search_web(query):
 
 def get_news(query):
     try:
-        # 🌟 GOOGLE NEWS RSS API (100% Reliable for Render) 🌟
         encoded_query = urllib.parse.quote(query)
-        # Search global news in Hindi/English mix
         url = f"https://news.google.com/rss/search?q={encoded_query}&hl=hi&gl=IN&ceid=IN:hi"
         response = requests.get(url, timeout=5)
         root = ET.fromstring(response.content)
-        items = root.findall('.//item')[:5] # Top 5 fresh news
+        items = root.findall('.//item')[:5] 
         news_str = " | ".join([item.find('title').text for item in items])
         if news_str:
             return f"[LIVE NEWS HEADLINES for '{query}'] {news_str}"
-        else:
-            return f"[LIVE NEWS] Koi taaza khabar nahi mili."
-    except Exception as e:
+        return f"[LIVE NEWS] Koi taaza khabar nahi mili."
+    except Exception:
         return "[LIVE NEWS] News Feed server is offline."
 
 def get_market_data():
@@ -118,25 +140,33 @@ def chat():
             user_sessions[email] = []
         short_term_memory = user_sessions[email]
         
-        # 1. PERMANENT MEMORY TRIGGERS
-        save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "yaad rakhna"]
+        # 1. PERMANENT MEMORY (Personal)
+        save_triggers = ["remember that", "jarvis remember", "yaad rakhna ki", "mera yaad rakhna"]
         for trigger in save_triggers:
             if user_msg.lower().startswith(trigger):
                 fact = user_msg.lower().replace(trigger, "", 1).strip()
                 if update_brain(email, fact):
                     short_term_memory.append({"role": "user", "content": user_msg})
-                    short_term_memory.append({"role": "assistant", "content": f"Neural memory updated. I will remember that {fact}."})
-                    return jsonify({'reply': f"Neural memory updated. Maine save kar liya hai ki {fact}."})
-                else:
-                    return jsonify({'reply': "Memory core error, Sir."})
+                    short_term_memory.append({"role": "assistant", "content": f"Personal memory updated. I will remember that {fact}."})
+                    return jsonify({'reply': f"Personal memory updated, Sir. Maine save kar liya hai ki {fact}."})
 
-        # 2. CLEAR MEMORY
+        # 🧠 2. GLOBAL LEARNING (The Hive Mind)
+        global_triggers = ["learn this:", "sabko batao ki", "global memory:"]
+        for trigger in global_triggers:
+            if user_msg.lower().startswith(trigger):
+                fact = user_msg.lower().replace(trigger, "", 1).strip()
+                if update_global_brain(fact):
+                    short_term_memory.append({"role": "user", "content": user_msg})
+                    short_term_memory.append({"role": "assistant", "content": f"Global Hive Mind updated. All users will now know that {fact}."})
+                    return jsonify({'reply': f"Hive Mind Database updated! Ab se ye baat mere system ke saare users ke liye available rahegi: {fact}."})
+
+        # 3. CLEAR MEMORY
         if "clear your memory" in user_msg.lower() or "forget everything" in user_msg.lower():
             open(f"brain_{email}.txt", 'w', encoding='utf-8').close()
             user_sessions[email] = []
             return jsonify({'reply': "Memory core wiped successfully. I have forgotten everything about you."})
 
-        # 3. FILE READER
+        # 4. FILE READER
         file_text = ""
         filepath = None
         is_image = False
@@ -162,14 +192,12 @@ def chat():
                     img_ext = ext if ext != 'jpg' else 'jpeg'
                     with open(filepath, "rb") as image_file:
                         encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-                else:
-                    file_text = "[System Note: Unsupported file format.]"
             except Exception as e:
-                file_text = f"[System Note: Could not read the file due to an error: {str(e)}]"
+                file_text = f"[System Note: Could not read the file.]"
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        # 🚀 4. THE REAL-TIME DATA INJECTION 🚀
+        # 5. REAL-TIME DATA INJECTION
         context = ""
         msg_lower = user_msg.lower()
 
@@ -188,7 +216,7 @@ def chat():
         if context:
             real_time_info = f"--- J.A.R.V.I.S. REAL-TIME SENSORS ---\n{context}\n-----------------------------------\n\n"
 
-        # 5. PREPARE MESSAGES 
+        # 6. PREPARE MESSAGES 
         final_prompt = f"{real_time_info}{user_msg}"
         if file_text:
             final_prompt += f"\n\n--- ATTACHED FILE CONTENT ---\n{file_text[:15000]}"
@@ -196,7 +224,7 @@ def chat():
         messages = [{"role": "system", "content": build_system_instruction(username, email)}]
         messages.extend(short_term_memory)
 
-        # 6. DYNAMIC GROQ CALL
+        # 7. DYNAMIC GROQ CALL
         if is_image:
             vision_content = [
                 {"type": "text", "text": final_prompt if final_prompt.strip() else "Analyze this image and explain what you see in detail."},
@@ -216,7 +244,7 @@ def chat():
 
         reply = response.choices[0].message.content.strip()
 
-        # 7. SAVE TO HISTORY
+        # 8. SAVE TO HISTORY
         user_history_msg = user_msg
         if uploaded_file: user_history_msg = f"📎 [Attached: {uploaded_file.filename}] " + user_msg
         
