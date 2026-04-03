@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify
-from duckduckgo_search import DDGS
 from groq import Groq
 import os
 import psutil
@@ -7,6 +6,8 @@ import PyPDF2
 import base64 
 import requests
 import yfinance as yf
+import urllib.parse
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
@@ -49,40 +50,52 @@ def build_system_instruction(username, email):
         f"If real-time data (like weather, stocks, news, or web search) is provided in the prompt context, you MUST use it to give a highly accurate, up-to-date, human-like response. Never say you don't have real-time data if it is provided in the context."
     )
 
+# 🚀 NAYA: 100% RELIABLE LIVE API FETCHERS 🚀
 def search_web(query):
     try:
-        with DDGS() as ddgs:
-            results = [r for r in ddgs.text(query, max_results=3)]
-            if results:
-                return "\n".join([f"Title: {r['title']} | Content: {r['body']}" for r in results])
+        # Wikipedia API (Never gets blocked)
+        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={urllib.parse.quote(query)}&limit=1&namespace=0&format=json"
+        res = requests.get(search_url, timeout=5).json()
+        if len(res[1]) > 0:
+            title = res[1][0]
+            summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+            summary_res = requests.get(summary_url, timeout=5).json()
+            return f"Title: {title} | Content: {summary_res.get('extract', 'No details.')}"
+        return "No exact match found on Web."
     except Exception:
         return "Global networks unreachable."
 
-# 🚀 NAYA: LIVE API FETCHERS (Smarter) 🚀
+def get_news(query):
+    try:
+        # 🌟 GOOGLE NEWS RSS API (100% Reliable for Render) 🌟
+        encoded_query = urllib.parse.quote(query)
+        # Search global news in Hindi/English mix
+        url = f"https://news.google.com/rss/search?q={encoded_query}&hl=hi&gl=IN&ceid=IN:hi"
+        response = requests.get(url, timeout=5)
+        root = ET.fromstring(response.content)
+        items = root.findall('.//item')[:5] # Top 5 fresh news
+        news_str = " | ".join([item.find('title').text for item in items])
+        if news_str:
+            return f"[LIVE NEWS HEADLINES for '{query}'] {news_str}"
+        else:
+            return f"[LIVE NEWS] Koi taaza khabar nahi mili."
+    except Exception as e:
+        return "[LIVE NEWS] News Feed server is offline."
+
 def get_market_data():
     try:
         nifty = yf.Ticker("^NSEI").history(period="1d")['Close'].iloc[-1]
         bank_nifty = yf.Ticker("^NSEBANK").history(period="1d")['Close'].iloc[-1]
         return f"[LIVE STOCK MARKET] Nifty 50 is at {nifty:.2f}, Bank Nifty is at {bank_nifty:.2f}"
-    except Exception as e:
-        return "[LIVE STOCK MARKET] API Error. Data unavailable."
+    except Exception:
+        return "[LIVE STOCK MARKET] Data unavailable."
 
 def get_weather(city="Bankura"): 
     try:
-        res = requests.get(f"https://wttr.in/{city}?format=%C,+%t,+Humidity:%h,+Wind:%w")
+        res = requests.get(f"https://wttr.in/{city}?format=%C,+%t,+Humidity:%h,+Wind:%w", timeout=5)
         return f"[LIVE WEATHER IN {city}] {res.text}"
     except:
         return "[LIVE WEATHER] Sensors offline."
-
-def get_news(query):
-    try:
-        with DDGS() as ddgs:
-            # Ab ye default India ki jagah user ke question ki news dhoondhega
-            results = [r for r in ddgs.news(query, max_results=4)]
-            news_str = " | ".join([f"{r['title']}: {r['body']}" for r in results])
-            return f"[LIVE NEWS HEADLINES for '{query}'] {news_str}"
-    except:
-        return "[LIVE NEWS] Feed unreachable."
 
 @app.route('/')
 def home():
@@ -123,7 +136,7 @@ def chat():
             user_sessions[email] = []
             return jsonify({'reply': "Memory core wiped successfully. I have forgotten everything about you."})
 
-        # 3. UNIVERSAL FILE READER
+        # 3. FILE READER
         file_text = ""
         filepath = None
         is_image = False
@@ -156,21 +169,18 @@ def chat():
             if os.path.exists(filepath):
                 os.remove(filepath)
 
-        # 🚀 4. THE REAL-TIME DATA INJECTION (Smarter Triggers) 🚀
+        # 🚀 4. THE REAL-TIME DATA INJECTION 🚀
         context = ""
         msg_lower = user_msg.lower()
 
-        # Web Search & News Trigger (Bahut saare words add kar diye)
         search_triggers = ["search", "who is", "update", "updates", "new", "latest", "news", "khabar", "samachar", "aaj", "kya chal raha", "tell me about"]
         if any(t in msg_lower for t in search_triggers):
             context += f"Live Web Data: {search_web(user_msg)}\n"
             context += f"Live News Data: {get_news(user_msg)}\n"
 
-        # Stock Market Trigger
         if any(w in msg_lower for w in ["nifty", "market", "stock", "share", "price", "sensex", "trading"]):
             context += get_market_data() + "\n"
 
-        # Weather Trigger (Maine Bankura default set kar diya hai)
         if any(w in msg_lower for w in ["weather", "mausam", "temperature", "barish", "rain"]):
             context += get_weather("Bankura") + "\n"
 
@@ -186,7 +196,7 @@ def chat():
         messages = [{"role": "system", "content": build_system_instruction(username, email)}]
         messages.extend(short_term_memory)
 
-        # 6. DYNAMIC GROQ VISION/TEXT CALL
+        # 6. DYNAMIC GROQ CALL
         if is_image:
             vision_content = [
                 {"type": "text", "text": final_prompt if final_prompt.strip() else "Analyze this image and explain what you see in detail."},
