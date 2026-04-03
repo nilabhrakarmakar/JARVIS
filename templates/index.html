@@ -135,7 +135,6 @@
                 </div>
                 <div id="cpu-stat">CPU: <span id="cpu-val">--</span></div>
                 <div id="ram-stat">RAM: <span id="ram-val">--</span></div>
-                
                 <img id="navProfilePic" class="profile-pic" src="" alt="Profile" onclick="logout()" title="Click to Logout" style="display:none;">
             </div>
         </div>
@@ -317,13 +316,13 @@
         }).catch(err => console.log(err));
     }, 2000);
 
-    // 🌟 100% FIXED: SMARTER DYNAMIC VOICE ENGINE 🌟
+    // 🌟 SMART VOICE DETECTION ENGINE 🌟
     let availableVoices = [];
     
     function loadVoices() {
         availableVoices = window.speechSynthesis.getVoices();
         if(availableVoices.length > 0) {
-            document.getElementById('currentVoiceName').innerText = "Google हिन्दी";
+            document.getElementById('currentVoiceName').innerText = "Voices Loaded ✅";
         }
     }
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -335,28 +334,31 @@
 
     function getDynamicVoice(text) {
         let selectedVoice = null;
-        let langName = "Setting Voice..."; 
+        let langName = "Google हिन्दी"; 
         let langCode = "hi-IN";
-        let baseLang = "hi";
+        let isMissing = false;
 
-        // Step 1: Text scan karke Language pehchano
         if (/[\u0980-\u09FF]/.test(text)) {
-            langCode = "bn-IN"; baseLang = "bn"; langName = "বাংলা Voice";
+            langCode = "bn-IN"; langName = "বাংলা Voice";
         } else if (/[áéíóúñ¿¡]/i.test(text)) {
-            langCode = "es-ES"; baseLang = "es"; langName = "Español Voice";
+            langCode = "es-ES"; langName = "Español Voice";
         } else if (/[\u0900-\u097F]/.test(text)) {
-            langCode = "hi-IN"; baseLang = "hi"; langName = "Google हिन्दी";
-        } else {
-            langCode = "hi-IN"; baseLang = "hi"; langName = "Google हिन्दी";
+            langCode = "hi-IN"; langName = "Google हिन्दी";
         }
 
-        // Step 2: Dhoondho ki wo aawaz PC/Browser me hai ya nahi
+        // Try to find exact Google Voice
         selectedVoice = availableVoices.find(v => v.lang.includes(langCode) && v.name.includes('Google'));
         if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.includes(langCode));
-        if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.startsWith(baseLang)); // Jaise sirf 'bn'
 
-        // RETURN: Hum selectedVoice null bhi bhej sakte hain, taaki browser galat aawaz na lagaye
-        return { voice: selectedVoice, name: langName, code: langCode };
+        // 🚨 AGAR AWAZ NAHI MILI (Fallback) 🚨
+        if (!selectedVoice) {
+            isMissing = true;
+            // Hum usko wapas Hindi pe set kar denge taaki error msg padh sake
+            selectedVoice = availableVoices.find(v => v.lang.includes("hi-IN") || v.name.includes('Hindi')) || availableVoices[0];
+            langCode = selectedVoice ? selectedVoice.lang : "hi-IN";
+        }
+
+        return { voice: selectedVoice, name: isMissing ? "Voice Module Missing!" : langName, code: langCode, isMissing: isMissing };
     }
 
     function stopAudio() { 
@@ -570,30 +572,40 @@
                 saveCurrentSession(text || "File Analysis");
             });
 
-            // 🌟 100% FIXED VOICE EXECUTION 🌟
             const cleanText = data.reply.replace(/[*#_`]/g, ''); 
             let dynamicVoiceData = getDynamicVoice(cleanText);
             
             document.getElementById('currentVoiceName').innerText = dynamicVoiceData.name;
-            document.getElementById('voiceBadgeDiv').style.color = "var(--accent)";
-            setTimeout(() => { document.getElementById('voiceBadgeDiv').style.color = "var(--text-secondary)"; }, 2000);
+            
+            // 🚨 AGAR AWAZ MISSING HAI TOH YE CHALEGA 🚨
+            if (dynamicVoiceData.isMissing) {
+                document.getElementById('voiceBadgeDiv').style.color = "#ff5546"; // Red Error Color
+                
+                let errorSpeech = new SpeechSynthesisUtterance("Sir, text screen par likh diya hai, par aapke browser mein Bengali bolne wali aawaz install nahi hai.");
+                errorSpeech.lang = dynamicVoiceData.code; // Hindi
+                if (dynamicVoiceData.voice) errorSpeech.voice = dynamicVoiceData.voice;
+                
+                errorSpeech.onend = function() {
+                    if (isMicOn) { try { recognition.start(); } catch (e) {} } 
+                    else if (wakeWordEnabled) { try { wakeRecognition.start(); } catch (e) {} }
+                };
+                window.speechSynthesis.speak(errorSpeech);
 
-            const speech = new SpeechSynthesisUtterance(cleanText);
-            
-            // 🚨 YEH SABSE ZAROORI LINE HAI 🚨
-            speech.lang = dynamicVoiceData.code; // Ab browser ko pata hai ki Bengali padhna hai
-            
-            // Agar specifically us browser mein Bengali voice hui, toh laga do
-            // Agar nahi hui, toh browser Google ki network TTS automatically fetch kar lega kyunki humne speech.lang set kar diya hai!
-            if (dynamicVoiceData.voice) {
-                speech.voice = dynamicVoiceData.voice; 
+            } else {
+                // Normal Speech Agar Aawaz Mil Gayi Toh
+                document.getElementById('voiceBadgeDiv').style.color = "var(--accent)";
+                setTimeout(() => { document.getElementById('voiceBadgeDiv').style.color = "var(--text-secondary)"; }, 2000);
+
+                const speech = new SpeechSynthesisUtterance(cleanText);
+                speech.lang = dynamicVoiceData.code; 
+                if (dynamicVoiceData.voice) speech.voice = dynamicVoiceData.voice; 
+                
+                speech.onend = function() {
+                    if (isMicOn) { try { recognition.start(); } catch (e) {} } 
+                    else if (wakeWordEnabled) { try { wakeRecognition.start(); } catch (e) {} }
+                };
+                window.speechSynthesis.speak(speech);
             }
-            
-            speech.onend = function() {
-                if (isMicOn) { try { recognition.start(); } catch (e) {} } 
-                else if (wakeWordEnabled) { try { wakeRecognition.start(); } catch (e) {} }
-            };
-            window.speechSynthesis.speak(speech);
 
         } catch (e) { 
             document.getElementById(msgId).innerText = "Connection Error. Please check terminal."; 
