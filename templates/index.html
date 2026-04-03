@@ -131,7 +131,7 @@
             <div class="sys-stats">
                 <div class="voice-badge" title="Active Voice Engine" id="voiceBadgeDiv">
                     <span class="material-symbols-outlined">record_voice_over</span>
-                    <span id="currentVoiceName">Google हिन्दी</span>
+                    <span id="currentVoiceName">Loading Voices...</span>
                 </div>
                 <div id="cpu-stat">CPU: <span id="cpu-val">--</span></div>
                 <div id="ram-stat">RAM: <span id="ram-val">--</span></div>
@@ -253,8 +253,7 @@
         }
     }
 
-    window.onload = () => { initApp(); window.speechSynthesis.getVoices(); };
-
+    // --- LOCAL STORAGE CHAT HISTORY ---
     let currentSessionId = localStorage.getItem('currentSessionId') || Date.now().toString();
     let allSessions = JSON.parse(localStorage.getItem('jarvisSessions')) || {};
 
@@ -320,38 +319,52 @@
         }).catch(err => console.log(err));
     }, 2000);
 
-    // 🌟 NAYA: DYNAMIC LANGUAGE DETECTION ENGINE 🌟
+    // 🌟 100% FIXED: DYNAMIC VOICE LOADER 🌟
+    let availableVoices = [];
+    
+    function loadVoices() {
+        availableVoices = window.speechSynthesis.getVoices();
+        if(availableVoices.length > 0) {
+            document.getElementById('currentVoiceName').innerText = "Google हिन्दी";
+        }
+    }
+    // Browser ko bol rahe hain "Jab aawaz load ho jaye, tabhi list update karna"
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    window.onload = () => { 
+        initApp(); 
+        loadVoices(); // Initial try
+    };
+
     function getDynamicVoice(text) {
-        let voices = window.speechSynthesis.getVoices();
         let selectedVoice = null;
-        let langName = "Google हिन्दी"; 
+        let langName = "Voice Unavailable"; 
         let langCode = "hi-IN";
 
-        // Regex se text padh kar script pehchaano
+        // Step 1: Detect Language from Text
         if (/[\u0980-\u09FF]/.test(text)) {
-            // Bengali Text mila
-            langCode = "bn-IN";
-            langName = "Google বাংলা";
+            langCode = "bn-IN"; // Bengali
+            langName = "বাংলা Voice";
         } else if (/[áéíóúñ¿¡]/i.test(text)) {
-            // Spanish Text mila
-            langCode = "es-ES";
-            langName = "Google Español";
+            langCode = "es"; // Spanish
+            langName = "Español Voice";
         } else if (/[\u0900-\u097F]/.test(text)) {
-            // Pure Hindi Devanagari mili
-            langCode = "hi-IN";
+            langCode = "hi-IN"; // Hindi
             langName = "Google हिन्दी";
         } else {
-            // Default Hinglish / English
-            langCode = "hi-IN"; 
+            langCode = "hi-IN"; // Default Hinglish
             langName = "Google हिन्दी";
         }
 
-        // 1. Google ki original voice dhoondho us language mein
-        selectedVoice = voices.find(v => v.lang.includes(langCode) && v.name.includes('Google'));
-        // 2. Agar Google ki na mile, toh koi bhi voice dhoondho us language ki
-        if (!selectedVoice) selectedVoice = voices.find(v => v.lang.includes(langCode));
-        // 3. Agar kuch na mile, toh Default Hindi pe wapas aa jao
-        if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Hindi') || v.name.includes('हिन्दी'));
+        // Step 2: Search for the exact voice in Browser
+        selectedVoice = availableVoices.find(v => v.lang.includes(langCode) && v.name.includes('Google'));
+        if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.includes(langCode));
+
+        // Step 3: Agar fir bhi aawaz nahi mili, toh kisi tarah bas bol do (Default)
+        if (!selectedVoice && availableVoices.length > 0) {
+            selectedVoice = availableVoices.find(v => v.name.includes('Hindi') || v.name.includes('हिन्दी')) || availableVoices[0];
+            langName = "Fallback Voice";
+        }
 
         return { voice: selectedVoice, name: langName, code: langCode };
     }
@@ -394,7 +407,7 @@
         let transcript = e.results[e.results.length - 1][0].transcript.toLowerCase();
         if (transcript.includes("jarvis") || transcript.includes("wake up")) {
             wakeRecognition.stop(); 
-            let dynamic = getDynamicVoice("Haan Sir"); // Default
+            let dynamic = getDynamicVoice("Haan Sir"); 
             const speech = new SpeechSynthesisUtterance("Haan Sir, bataiye?");
             if (dynamic.voice) speech.voice = dynamic.voice;
             speech.onend = function() { toggleMic(); };
@@ -564,20 +577,22 @@
                 saveCurrentSession(text || "File Analysis");
             });
 
-            // 🌟 YAHAN CALL HOGA NAYA VOICE ENGINE 🌟
+            // 🌟 THE MAGIC: DYNAMIC VOICE ENGINE 🌟
             const cleanText = data.reply.replace(/[*#_`]/g, ''); 
             
-            // Text ko scan karo aur sahi aawaz nikalo
+            // Text bhej kar pata lagao ki aawaz konsi chahiye
             let dynamicVoiceData = getDynamicVoice(cleanText);
             
-            // Badge UI Update karo
+            // Badge UI Update (Dikhane ke liye ki language badli hai)
             document.getElementById('currentVoiceName').innerText = dynamicVoiceData.name;
             document.getElementById('voiceBadgeDiv').style.color = "var(--accent)";
             setTimeout(() => { document.getElementById('voiceBadgeDiv').style.color = "var(--text-secondary)"; }, 2000);
 
             const speech = new SpeechSynthesisUtterance(cleanText);
-            speech.lang = dynamicVoiceData.code; // Sahi language tag
-            if (dynamicVoiceData.voice) speech.voice = dynamicVoiceData.voice; // Sahi Voice
+            speech.lang = dynamicVoiceData.code; // Language Code (jaise bn-IN)
+            if (dynamicVoiceData.voice) {
+                speech.voice = dynamicVoiceData.voice; // Asli Aawaz set karo
+            }
             
             speech.onend = function() {
                 if (isMicOn) { try { recognition.start(); } catch (e) {} } 
