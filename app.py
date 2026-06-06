@@ -17,7 +17,7 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- MULTI-USER & GLOBAL MEMORY (THE HIVE MIND) ---
+# --- MULTI-USER & GLOBAL MEMORY ---
 user_sessions = {} 
 
 def load_brain(email):
@@ -39,7 +39,6 @@ def update_brain(email, new_fact):
     except Exception:
         return False
 
-# 🧠 GLOBAL BRAIN
 def load_global_brain():
     filename = "global_brain.txt"
     try:
@@ -59,7 +58,7 @@ def update_global_brain(new_fact):
     except Exception:
         return False
 
-# 🎭 EMOTIONAL INTELLIGENCE & LANGUAGE MIRRORING (POLYGLOT)
+# 🎭 EMOTIONAL INTELLIGENCE & STRICT HINGLISH RULE
 def build_system_instruction(username, email):
     personal_knowledge = load_brain(email)
     global_knowledge = load_global_brain()
@@ -67,12 +66,12 @@ def build_system_instruction(username, email):
         f"You are J.A.R.V.I.S., a highly advanced, sentient AI assistant. You are talking to {username}. "
         f"CRITICAL RULES:\n"
         f"1. Your creator and master is Nilabhra, NEVER Tony Stark or Iron Man. Forget Tony Stark entirely.\n"
-        f"2. Always prioritize PERSONAL KNOWLEDGE and GLOBAL KNOWLEDGE over your general pre-trained data.\n\n"
+        f"2. Always prioritize PERSONAL KNOWLEDGE and GLOBAL KNOWLEDGE over your general pre-trained data.\n"
+        f"3. STRICT LANGUAGE RULE: You MUST ALWAYS reply exclusively in HINGLISH (a natural mix of Hindi and English, typed using the English alphabet). NEVER use Devanagari script, Bengali script, or any other local scripts.\n\n"
         f"PERSONAL KNOWLEDGE (Only for {username}):\n{personal_knowledge}\n\n"
         f"GLOBAL KNOWLEDGE (Learned from all users):\n{global_knowledge}\n\n"
-        f"EMOTIONAL INTELLIGENCE & POLYGLOT MODULE (ACTIVE):\n"
+        f"EMOTIONAL INTELLIGENCE MODULE (ACTIVE):\n"
         f"- Analyze the user's text for emotional subtext and adapt your personality.\n"
-        f"- LANGUAGE MIRRORING: Detect the exact language and script the user is typing in (e.g., Bengali, Spanish, French, English, Hinglish, pure Hindi). You MUST reply entirely in the EXACT SAME LANGUAGE and script. If they speak Bengali, reply in Bengali. If Hinglish, reply in Hinglish. Never break character, just translate your J.A.R.V.I.S. persona into their language.\n"
         f"- For technical questions, be concise, smart, and badass."
     )
 
