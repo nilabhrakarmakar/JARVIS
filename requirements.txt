@@ -1,6 +1,5 @@
 Flask
 groq
-duckduckgo-search
 psutil
 PyPDF2
 requests
